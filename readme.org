@@ -9,6 +9,22 @@
 #+PROPERTY: header-args
 #+PROPERTY: literate-lang php
 #+PROPERTY: literate-load yes
+* Table of Contents                                            :TOC:noexport:
+- [[#references][References]]
+- [[#preparation][preparation]]
+  - [[#header][header]]
+  - [[#prevent-data-leaks][Prevent Data Leaks]]
+  - [[#check-if-woocommerce-is-active][Check if WooCommerce is active]]
+  - [[#a-class-for-this-plugin][a class for this plugin]]
+- [[#implementation-of-main-class][Implementation of main class]]
+  - [[#version-and-construct-of-main-class][version and construct of main class]]
+  - [[#constructor-of-main-class][constructor of main class]]
+  - [[#init-main-class][init main class]]
+  - [[#init-hooks][init hooks]]
+  - [[#setup-widget][setup widget]]
+  - [[#singletone-of-main-class][singletone of Main class]]
+  - [[#initialization][initialization]]
+
 * References
 - Document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
 - The target php file: [[file:src/sakura.php]]
