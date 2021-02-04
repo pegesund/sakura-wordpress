@@ -9,11 +9,6 @@
 #+PROPERTY: header-args
 #+PROPERTY: literate-lang php
 #+PROPERTY: literate-load yes
-* WooCommerce plugin
-:PROPERTIES:
-:literate-lang: php
-:header-args:
-:END:
 * References
 - Document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
 - The target php file: [[file:src/sakura.php]]
