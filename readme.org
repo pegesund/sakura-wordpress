@@ -46,6 +46,7 @@
 #+END_SRC
 ** Prevent Data Leaks
 https://docs.woocommerce.com/document/create-a-plugin/#section-7
+
 Try to prevent direct access data leaks. Add this line of code after the opening PHP tag in each PHP file:
 #+BEGIN_SRC php
 if ( ! defined( 'ABSPATH' ) ) {
