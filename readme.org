@@ -1,0 +1,174 @@
+# -*- Mode: POLY-ORG; encoding: utf-8; tab-width: 2;  -*- ---
+#+Title: The WooCommerce plugin for Sakura widget.
+#+PROPERTY: header-args :results silent
+#+OPTIONS: tex:t toc:2 \n:nil @:t ::t |:t ^:nil -:t f:t *:t <:t
+#+PROPERTY: header-args :results silent :noweb yes :tangle ./src/sakura.php
+#+STARTUP: latexpreview
+#+STARTUP: noindent
+#+STARTUP: inlineimages
+#+PROPERTY: header-args
+#+PROPERTY: literate-lang php
+#+PROPERTY: literate-load yes
+* WooCommerce plugin
+:PROPERTIES:
+:literate-lang: php
+:header-args:
+:END:
+* References
+- Document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
+- The target php file: [[file:../plugin/woocommerce/sakura/sakura.php]]
+
+* preparation
+** header
+#+BEGIN_SRC php
+<?php
+/**
+ * Plugin Name: Sakura Network in WooCommerce
+ * Plugin URI: https://sakura.eco
+ * Description: An eCommerce toolkit that helps you show articles in a sakura.eco network.
+ * Version: 1.0.0
+ * Author: Sakura.eco
+ * Author URI: https://sakura.eco/
+ * Developer: Sakura.eco
+ * Developer URI: https://sakura.eco/
+ * Text Domain: sakura
+ * Domain Path: /languages
+ *
+ * Woo: 12345:342928dfsfhsf8429842374wdf4234sfd
+ * WC requires at least: 2.2
+ * WC tested up to: 2.3
+ *
+ * Requires at least: 5.3
+ * Requires PHP: 7.0
+ *
+ * @package SakuraEco
+ */
+#+END_SRC
+** Prevent Data Leaks
+https://docs.woocommerce.com/document/create-a-plugin/#section-7
+Try to prevent direct access data leaks. Add this line of code after the opening PHP tag in each PHP file:
+#+BEGIN_SRC php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly
+}
+#+END_SRC
+** Check if WooCommerce is active
+#+BEGIN_SRC php
+/**
+ * Check if WooCommerce is active
+ **/
+if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) )) {
+    exit;
+}
+#+END_SRC
+** a class for this plugin 
+#+BEGIN_SRC php
+/**
+ * Main Sakura Class.
+ *
+ * @class Sakrua
+ */
+final class Sakrua {
+
+  <<woocommerce-plugin-version>>
+  <<woocommerce-construct>>
+  <<sakura-singleton>>
+  <<init-hooks>>
+  <<setup-widget>>
+  <<init-main-class>>
+}
+#+END_SRC
+
+* Implementation of main class
+:PROPERTIES:
+:header-args: :noweb yes :tangle none
+:END:
+** version and construct of main class
+#+name: woocommerce-plugin-version
+#+BEGIN_SRC php
+	/**
+	 * Sakrua version.
+	 *
+	 * @var string
+	 */
+	public $version = '1.0.2';
+
+#+END_SRC
+** constructor of main class
+#+name: woocommerce-construct
+#+BEGIN_SRC php
+	/**
+	 * Sakura Constructor.
+	 */
+	public function __construct() {
+		$this->init_hooks();
+	}
+
+#+END_SRC
+** init main class
+#+name: init-main-class
+#+BEGIN_SRC php
+	/**
+	 * Init Sakura when WooCommerce Initialises.
+	 */
+	public function init() {
+	}
+#+END_SRC
+
+** init hooks
+In frontend, the action =woocommerce_before_main_content= will be used both in shop products list page and single product content page.
+#+name: init-hooks
+#+BEGIN_SRC php
+	/**
+	 * Hook into actions and filters.
+	 *
+	 * @since 2.3
+	 */
+	private function init_hooks() {
+      add_action('wp_head', array( $this, 'setup_widget'));
+	}
+#+END_SRC
+** setup widget
+#+name: setup-widget
+#+BEGIN_SRC php
+	/**
+	 * Setup widget.
+	 */
+	public function setup_widget() {
+	}
+
+#+END_SRC
+
+** singletone of Main class
+#+name: sakura-singleton
+#+BEGIN_SRC php :tangle none
+
+	/**
+	 * The single instance of the class.
+	 *
+	 * @var Sakrua
+	 * @since 1.0
+	 */
+	protected static $_instance = null;
+
+	/**
+	 * Main Sakura Instance.
+	 *
+	 * Ensures only one instance of Sakura is loaded or can be loaded.
+	 *
+	 * @since 2.1
+	 * @static
+	 * @see SK()
+	 * @return Sakura - Main instance.
+	 */
+	public static function instance() {
+		if ( is_null( self::$_instance ) ) {
+			self::$_instance = new self();
+		}
+		return self::$_instance;
+	}
+
+#+END_SRC
+
+** initialization
+We can run our initialization codes in action [[https://github.com/woocommerce/woocommerce/blob/4.9.2/includes/class-woocommerce.php#L592][woocommerce_init]], which will be called after plugins loaded.
