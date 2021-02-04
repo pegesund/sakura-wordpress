@@ -16,7 +16,7 @@
 :END:
 * References
 - Document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
-- The target php file: [[file:../plugin/woocommerce/sakura/sakura.php]]
+- The target php file: [[file:src/sakura.php]]
 
 * preparation
 ** header
