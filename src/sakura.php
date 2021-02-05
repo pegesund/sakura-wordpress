@@ -60,7 +60,7 @@ final class Sakura {
      */
     private function init_hooks() {
   add_action( 'init', array( $this, 'init' ), 0 );
-  // add_action('wp_head', array( $this, 'store_sakura_from_cookie'));
+  // add_action('wp_head', array( $this, 'store_sakura_from_in_cookie'));
     }
       /**
        * Init Sakura when WooCommerce Initialises.
@@ -68,22 +68,23 @@ final class Sakura {
       public function init() {
     // Classes/actions loaded for the frontend and for ajax requests.
   if (( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' )) {
-      $this->store_sakura_from_cookie();
+      $this->store_sakura_from_in_cookie();
   }
       }
   
   /**
   * Store site/articles from sakura networks.
   */
-  public function store_sakura_from_cookie() {
+  public function store_sakura_from_in_cookie() {
       if (isset($_GET["sakura_from"])) {
-          $article = $_GET["sakura_from"];
+          $article = rawurlencode($_GET["sakura_from"]);
           if (isset( $_COOKIE["sakura_from"] )) {
-              $articles = $_COOKIE["sakura_from"];
+              $articles = $_COOKIE["sakura_from"] . "," . $article;
           } else {
-              $articles = '';
+              $articles = $article;
           }
-          wc_setcookie("sakura_from", ($articles . "," . $article));
+          wc_setcookie("sakura_from", $articles);
+          $_COOKIE["sakura_from"] = $articles;
       }
   }
   
