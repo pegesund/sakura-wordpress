@@ -19,9 +19,9 @@
 - [[#implementation-of-main-class][Implementation of main class]]
   - [[#version-and-construct-of-main-class][version and construct of main class]]
   - [[#constructor-of-main-class][constructor of main class]]
-  - [[#init-main-class][init main class]]
   - [[#init-hooks][init hooks]]
-  - [[#setup-widget][setup widget]]
+  - [[#init-main-class][init main class]]
+  - [[#store-sitearticle-from-sakura-network-in-local-cookies][store site/article from Sakura network in local cookies.]]
   - [[#singletone-of-main-class][singletone of Main class]]
   - [[#initialization][initialization]]
 - [[#load-the-instance-of-main-class][Load the instance of main class]]
@@ -92,21 +92,14 @@ if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins'
  */
 final class Sakura {
 
-  <<woocommerce-plugin-version>>
-  <<woocommerce-construct>>
-  <<sakura-singleton>>
-  <<init-hooks>>
-  <<setup-widget>>
-  <<init-main-class>>
+  <<sakura-main-class>>
 }
 #+END_SRC
-
 * Implementation of main class
 :PROPERTIES:
-:header-args: :noweb yes :tangle no
+:header-args: :tangle no :noweb-ref sakura-main-class
 :END:
 ** version and construct of main class
-#+name: woocommerce-plugin-version
 #+BEGIN_SRC php
 	/**
 	 * Sakura version.
@@ -117,7 +110,6 @@ final class Sakura {
 
 #+END_SRC
 ** constructor of main class
-#+name: woocommerce-construct
 #+BEGIN_SRC php
 	/**
 	 * Sakura Constructor.
@@ -127,19 +119,8 @@ final class Sakura {
 	}
 
 #+END_SRC
-** init main class
-#+name: init-main-class
-#+BEGIN_SRC php
-	/**
-	 * Init Sakura when WooCommerce Initialises.
-	 */
-	public function init() {
-	}
-#+END_SRC
-
 ** init hooks
 In frontend, the action =woocommerce_before_main_content= will be used both in shop products list page and single product content page.
-#+name: init-hooks
 #+BEGIN_SRC php
 	/**
 	 * Hook into actions and filters.
@@ -147,22 +128,43 @@ In frontend, the action =woocommerce_before_main_content= will be used both in s
 	 * @since 2.3
 	 */
 	private function init_hooks() {
-      add_action('wp_head', array( $this, 'setup_widget'));
+      add_action( 'init', array( $this, 'init' ), 0 );
+      // add_action('wp_head', array( $this, 'store_sakura_from_cookie'));
 	}
 #+END_SRC
-** setup widget
-#+name: setup-widget
+** init main class
 #+BEGIN_SRC php
 	/**
-	 * Setup widget.
+	 * Init Sakura when WooCommerce Initialises.
 	 */
-	public function setup_widget() {
+	public function init() {
+      // Classes/actions loaded for the frontend and for ajax requests.
+    if (( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' )) {
+        $this->store_sakura_from_cookie();
+    }
 	}
 
+#+END_SRC
+
+** store site/article from Sakura network in local cookies.
+#+BEGIN_SRC php
+    /**
+    * Store site/articles from sakura networks.
+    */
+    public function store_sakura_from_cookie() {
+        if (isset($_GET["sakura_from"])) {
+            $article = $_GET["sakura_from"];
+            if (isset( $_COOKIE["sakura_from"] )) {
+                $articles = $_COOKIE["sakura_from"];
+            } else {
+                $articles = '';
+            }
+            wc_setcookie("sakura_from", ($articles . "," . $article));
+        }
+    }
 #+END_SRC
 
 ** singletone of Main class
-#+name: sakura-singleton
 #+BEGIN_SRC php :tangle no
 
 	/**
@@ -180,7 +182,7 @@ In frontend, the action =woocommerce_before_main_content= will be used both in s
 	 *
 	 * @since 2.1
 	 * @static
-	 * @see SK()
+	 * @see SC()
 	 * @return Sakura - Main instance.
 	 */
 	public static function instance() {
@@ -198,11 +200,11 @@ We can run our initialization codes in action [[https://github.com/woocommerce/w
 * Load the instance of main class
 #+BEGIN_SRC php
 /**
- ,* Returns the main instance of SC.
- ,*
- ,* @since  1.0
- ,* @return Sakura
- ,*/
+ * Returns the main instance of SC.
+ *
+ * @since  1.0
+ * @return Sakura
+ */
 function SC() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid
 	return Sakura::instance();
 }
@@ -251,6 +253,11 @@ public function widget( $args, $instance ) {
         $title = __('Sakura Network', 'wpb_widget_domain');
     }
     $url = apply_filters( 'widget_url', $instance['url'] );
+    if (isset( $_COOKIE["sakura_from"] )) {
+        $url = $url . "?from=" .  $_COOKIE["sakura_from"];
+    } else {
+        $articles = '';
+    }
 
     // before and after widget arguments are defined by themes
     echo $args['before_widget'];
@@ -259,7 +266,7 @@ public function widget( $args, $instance ) {
 
     // This is where you run the code and display the output
     ?>
-    <iframe width="450" height="433" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
+    <iframe class="sakura" width="450" height="433" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
 <?php
     echo $args['after_widget'];
 }
@@ -267,6 +274,9 @@ public function widget( $args, $instance ) {
 #+END_SRC
 *** form
 This part of the code is where we create the form with widget options for backend.
+
+We can setup widget URL by wordpress's [[https://developer.wordpress.org/reference/functions/site_url/][site url]] automatically later.
+
 #+BEGIN_SRC php
     // Widget Backend
     public function form( $instance ) {

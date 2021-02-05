@@ -53,6 +53,39 @@ final class Sakura {
   	$this->init_hooks();
   }
   
+    /**
+     * Hook into actions and filters.
+     *
+     * @since 2.3
+     */
+    private function init_hooks() {
+  add_action( 'init', array( $this, 'init' ), 0 );
+  // add_action('wp_head', array( $this, 'store_sakura_from_cookie'));
+    }
+      /**
+       * Init Sakura when WooCommerce Initialises.
+       */
+      public function init() {
+    // Classes/actions loaded for the frontend and for ajax requests.
+  if (( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' )) {
+      $this->store_sakura_from_cookie();
+  }
+      }
+  
+  /**
+  * Store site/articles from sakura networks.
+  */
+  public function store_sakura_from_cookie() {
+      if (isset($_GET["sakura_from"])) {
+          $article = $_GET["sakura_from"];
+          if (isset( $_COOKIE["sakura_from"] )) {
+              $articles = $_COOKIE["sakura_from"];
+          } else {
+              $articles = '';
+          }
+          wc_setcookie("sakura_from", ($articles . "," . $article));
+      }
+  }
   
   /**
    * The single instance of the class.
@@ -69,7 +102,7 @@ final class Sakura {
    *
    * @since 2.1
    * @static
-   * @see SK()
+   * @see SC()
    * @return Sakura - Main instance.
    */
   public static function instance() {
@@ -79,25 +112,6 @@ final class Sakura {
   	return self::$_instance;
   }
   
-    /**
-     * Hook into actions and filters.
-     *
-     * @since 2.3
-     */
-    private function init_hooks() {
-  add_action('wp_head', array( $this, 'setup_widget'));
-    }
-  /**
-   * Setup widget.
-   */
-  public function setup_widget() {
-  }
-  
-  /**
-   * Init Sakura when WooCommerce Initialises.
-   */
-  public function init() {
-  }
 }
 
 /**
@@ -135,6 +149,11 @@ class Sakura_widget extends WP_Widget {
           $title = __('Sakura Network', 'wpb_widget_domain');
       }
       $url = apply_filters( 'widget_url', $instance['url'] );
+      if (isset( $_COOKIE["sakura_from"] )) {
+          $url = $url . "?from=" .  $_COOKIE["sakura_from"];
+      } else {
+          $articles = '';
+      }
   
       // before and after widget arguments are defined by themes
       echo $args['before_widget'];
@@ -143,7 +162,7 @@ class Sakura_widget extends WP_Widget {
   
       // This is where you run the code and display the output
       ?>
-      <iframe width="450" height="433" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
+      <iframe class="sakura" width="450" height="433" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
   <?php
       echo $args['after_widget'];
   }
