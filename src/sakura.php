@@ -129,7 +129,12 @@ class Sakura_widget extends WP_Widget {
     }
   	    // Creating widget front-end
   public function widget( $args, $instance ) {
-      $title = apply_filters( 'widget_title', $instance['title'] );
+      if ( isset( $instance[ 'title' ] ) ) {
+          $title = $instance['title'];
+      } else {
+          $title = __('Sakura Network', 'wpb_widget_domain');
+      }
+      $url = apply_filters( 'widget_url', $instance['url'] );
   
       // before and after widget arguments are defined by themes
       echo $args['before_widget'];
@@ -137,30 +142,33 @@ class Sakura_widget extends WP_Widget {
           echo $args['before_title'] . $title . $args['after_title'];
   
       // This is where you run the code and display the output
-      echo __( '<iframe width="450" height="433" src="https://sakura/widget/34653862a2760d00b676b5d10c654542" title="Sakura Transparency Widget"></iframe>', 'sakura_widget_domain' );
+      ?>
+      <iframe width="450" height="433" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
+  <?php
       echo $args['after_widget'];
   }
   
       // Widget Backend
       public function form( $instance ) {
           if ( isset( $instance[ 'title' ] ) ) {
-              $title = $instance[ 'title' ];
+              $title = $instance['title'];
+          } else {
+              $title = __('Sakura Network', 'wpb_widget_domain' );
           }
-          else {
-              $title = __( 'New title', 'wpb_widget_domain' );
-          }
+          $url = ! empty( $instance['url'] ) ? $instance['url'] : esc_html__( 'Please input the widget URL', 'text_domain' );
           // Widget admin form
           ?>
           <p>
-          <label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
-          <input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>"
-          name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+          <label for="<?php echo $this->get_field_id( 'url' ); ?>"><?php _e( 'Url:' ); ?></label>
+          <input class="widefat" id="<?php echo $this->get_field_id( 'url' ); ?>"
+          name="<?php echo $this->get_field_name( 'url' ); ?>" type="text" value="<?php echo esc_attr( $url ); ?>" />
           </p>
   <?php
       }
   // Updating widget replacing old instances with new
   public function update( $new_instance, $old_instance ) {
       $instance = array();
+      $instance['url'] = ( ! empty( $new_instance['url'] ) ) ? strip_tags( $new_instance['url'] ) : '';
       $instance['title'] = ( ! empty( $new_instance['title'] ) ) ? strip_tags( $new_instance['title'] ) : '';
       return $instance;
   }
