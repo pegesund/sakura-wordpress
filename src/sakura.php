@@ -35,12 +35,12 @@ if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins'
 /**
  * Main Sakura Class.
  *
- * @class Sakrua
+ * @class Sakura
  */
-final class Sakrua {
+final class Sakura {
 
   /**
-   * Sakrua version.
+   * Sakura version.
    *
    * @var string
    */
@@ -57,7 +57,7 @@ final class Sakrua {
   /**
    * The single instance of the class.
    *
-   * @var Sakrua
+   * @var Sakura
    * @since 1.0
    */
   protected static $_instance = null;
@@ -100,6 +100,18 @@ final class Sakrua {
   }
 }
 
+/**
+ * Returns the main instance of SC.
+ *
+ * @since  1.0
+ * @return Sakura
+ */
+function SC() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid
+	return Sakura::instance();
+}
+// Global for backwards compatibility.
+$GLOBALS['sakura'] = SC();
+
 class Sakura_widget extends WP_Widget {
   // Creating the widget
   function __construct() {
@@ -141,7 +153,8 @@ class Sakura_widget extends WP_Widget {
           ?>
           <p>
           <label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
-          <input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+          <input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>"
+          name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
           </p>
   <?php
       }

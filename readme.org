@@ -24,6 +24,7 @@
   - [[#setup-widget][setup widget]]
   - [[#singletone-of-main-class][singletone of Main class]]
   - [[#initialization][initialization]]
+- [[#load-the-instance-of-main-class][Load the instance of main class]]
 - [[#a-widget-for-sakura-network][A Widget for Sakura network]]
   - [[#definition][definition]]
   - [[#implementation][implementation]]
@@ -87,9 +88,9 @@ if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins'
 /**
  * Main Sakura Class.
  *
- * @class Sakrua
+ * @class Sakura
  */
-final class Sakrua {
+final class Sakura {
 
   <<woocommerce-plugin-version>>
   <<woocommerce-construct>>
@@ -108,7 +109,7 @@ final class Sakrua {
 #+name: woocommerce-plugin-version
 #+BEGIN_SRC php
 	/**
-	 * Sakrua version.
+	 * Sakura version.
 	 *
 	 * @var string
 	 */
@@ -167,7 +168,7 @@ In frontend, the action =woocommerce_before_main_content= will be used both in s
 	/**
 	 * The single instance of the class.
 	 *
-	 * @var Sakrua
+	 * @var Sakura
 	 * @since 1.0
 	 */
 	protected static $_instance = null;
@@ -194,6 +195,20 @@ In frontend, the action =woocommerce_before_main_content= will be used both in s
 ** initialization
 We can run our initialization codes in action [[https://github.com/woocommerce/woocommerce/blob/4.9.2/includes/class-woocommerce.php#L592][woocommerce_init]], which will be called after plugins loaded.
 
+* Load the instance of main class
+#+BEGIN_SRC php
+/**
+ ,* Returns the main instance of SC.
+ ,*
+ ,* @since  1.0
+ ,* @return Sakura
+ ,*/
+function SC() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid
+	return Sakura::instance();
+}
+// Global for backwards compatibility.
+$GLOBALS['sakura'] = SC();
+#+END_SRC
 * A Widget for Sakura network
 [[https://www.wpbeginner.com/wp-tutorials/how-to-create-a-custom-wordpress-widget/][How to Create a Custom WordPress Widget]]
 ** definition
@@ -258,7 +273,8 @@ This part of the code is where we create the form with widget options for backen
         ?>
         <p>
         <label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
-        <input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+        <input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>"
+        name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
         </p>
 <?php
     }
