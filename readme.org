@@ -21,9 +21,16 @@
   - [[#constructor-of-main-class][constructor of main class]]
   - [[#init-hooks][init hooks]]
   - [[#init-main-class][init main class]]
-  - [[#store-sitearticle-from-sakura-network-in-local-cookies][store site/article from Sakura network in local cookies.]]
+  - [[#store-sitearticle-from-sakura-network-in-local-cookies02][store site/article from Sakura network in local cookies.]]
+  - [[#handle-various-events][handle various events]]
+    - [[#a-class-property-to-hold-the-current-action-name][a class property to hold the current action name.]]
+    - [[#a-classes-property-to-hold-the-current-action-params][a classes property to hold the current action params]]
+    - [[#a-function-to-enqueue-current-action-information][a function to enqueue current action information]]
+    - [[#a-function-to-handle-the-delayed-action-queue][a function to handle the delayed action queue.]]
+    - [[#new-order][new order]]
+    - [[#add_to_cart][add_to_cart]]
+    - [[#payment-complete][payment complete]]
   - [[#singletone-of-main-class][singletone of Main class]]
-  - [[#initialization][initialization]]
 - [[#load-the-instance-of-main-class][Load the instance of main class]]
 - [[#a-widget-for-sakura-network][A Widget for Sakura network]]
   - [[#definition][definition]]
@@ -33,10 +40,15 @@
     - [[#form][form]]
     - [[#update][update]]
   - [[#load-widget][load widget]]
+- [[#development-setup][Development setup]]
+  - [[#disable-safe-url-check][disable safe url check]]
+    - [[#add-development-environment-value-in-nginx][add development environment value in nginx]]
+    - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
 - [[#readme][readme]]
 
 * References
-- Document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
+- Wordpress document: [[https://developer.wordpress.org/plugins/][Plugin Handbook]]
+- WooCommerce document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
 - The target php file: [[file:src/sakura.php]]
 
 * preparation
@@ -46,7 +58,7 @@
 /**
  * Plugin Name: Sakura Network in WooCommerce
  * Plugin URI: https://sakura.eco
- * Description: An eCommerce toolkit that helps you show articles in a sakura.eco network.
+ * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
  * Version: 1.0.0
  * Author: Sakura.eco
  * Author URI: https://sakura.eco/
@@ -92,6 +104,7 @@ if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins'
  */
 final class Sakura {
 
+  <<sakura-main-vars>>
   <<sakura-main-class>>
 }
 #+END_SRC
@@ -120,7 +133,8 @@ final class Sakura {
 
 #+END_SRC
 ** init hooks
-In frontend, the action =woocommerce_before_main_content= will be used both in shop products list page and single product content page.
+# In frontend, the action =woocommerce_before_main_content= will be used both in shop products list page and single product content page.
+You can check WooCommerce's [[https://woocommerce.github.io/code-reference/hooks/hooks.html][Action and Filter Hook Reference]] for a list of action and filter hooks.
 #+BEGIN_SRC php
 	/**
 	 * Hook into actions and filters.
@@ -129,13 +143,29 @@ In frontend, the action =woocommerce_before_main_content= will be used both in s
 	 */
 	private function init_hooks() {
       add_action( 'init', array( $this, 'init' ), 0 );
-      // add_action('wp_head', array( $this, 'store_sakura_from_in_cookie'));
+      add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
+      <<sakura-dev-hooks>>
+
+      // a uniform interface to woocommerce events.
+      add_action( 'woocommerce_new_order', function ($order_id) {
+        return $this->enqueue_action('woocommerce_new_order', $order_id);
+ }, 0 );
+      // add_action( 'woocommerce_update_order', array( $this, 'update_order' ), 0 );
+      // add_action( 'woocommerce_order_refunded', array( $this, 'refund_order' ), 0 );
+      add_action( 'woocommerce_add_to_cart',
+ function ($hash_id) {
+ return $this->enqueue_action('woocommerce_add_to_cart', $hash_id);
+ }, 0 );
+      add_action( 'woocommerce_pre_payment_complete',
+ function ($order_id) {
+ return $this->enqueue_action('woocommerce_pre_payment_complete', $order_id);
+ }, 0 );
 	}
 #+END_SRC
 ** init main class
 #+BEGIN_SRC php
 	/**
-	 * Init Sakura when WooCommerce Initialises.
+	 * Init Sakura when Wordpress Initialises.
 	 */
 	public function init() {
       // Classes/actions loaded for the frontend and for ajax requests.
@@ -146,8 +176,11 @@ In frontend, the action =woocommerce_before_main_content= will be used both in s
 
 #+END_SRC
 
-** store site/article from Sakura network in local cookies.
+** store site/article from Sakura network in local cookies.[0/2]
 Please note that we have to [[https://stackoverflow.com/a/3230167][update cookie value]] directly so widget can access it correctly.
+
+- [ ] store the time we added a sakura from article.
+- [ ] store the expired time of each articl to one month.
 #+BEGIN_SRC php
     /**
     * Store site/articles from sakura networks.
@@ -160,10 +193,121 @@ Please note that we have to [[https://stackoverflow.com/a/3230167][update cookie
             } else {
                 $articles = $article;
             }
-            wc_setcookie("sakura_from", $articles);
+            wc_setcookie("sakura_from", $articles, time() - MONTH_IN_SECONDS);
             $_COOKIE["sakura_from"] = $articles;
         }
     }
+#+END_SRC
+
+** handle various events
+We will handle required WooCommerce events in action [[https://developer.wordpress.org/reference/hooks/shutdown/][shutdown]] so it will not block the render of a WooCommerce page.
+*** a class property to hold the current action name.
+#+BEGIN_SRC php :noweb-ref sakura-main-vars
+   public $current_action = null;
+#+END_SRC
+*** a classes property to hold the current action params
+#+BEGIN_SRC php :noweb-ref sakura-main-vars
+   public $current_action_params = null;
+#+END_SRC
+*** a function to enqueue current action information
+#+BEGIN_SRC php
+    /**
+    * enqueue action
+    */
+    public function enqueue_action($action, $arg) {
+            $this->current_action = $action;
+            $this->current_action_params = $arg;
+    }
+#+END_SRC
+*** a function to handle the delayed action queue.
+The idea is from the web hooks mechanism of WooCommerce.
+#+BEGIN_SRC php
+    /**
+    * Process action
+    */
+    public function execute_delayed_queue() {
+          switch ($this->current_action)
+    {
+                    case 'woocommerce_new_order':
+        $this->new_order($this->current_action_params);
+      break;
+    case 'woocommerce_add_to_cart':
+        $this->add_to_cart($this->current_action_params);
+    break;
+    case 'woocommerce_pre_payment_complete':
+        $this->payment_complete = $this->current_action_params;
+        break;
+    }
+                         }
+
+#+END_SRC
+
+*** new order
+#+BEGIN_SRC php
+    /**
+    * New order
+    */
+    public function new_order($order_id) {
+				$order = wc_get_order( $order_id );
+
+            error_log(sprintf('notify sakura for new order: #%d', $order_id));
+        foreach ( $order->get_items() as $item_id => $item ) {
+            $product    = $item->get_product();
+            $payload = array(
+                        'event' => 'purchase',
+                        'to_article' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
+                        'amount' => $item->get_quantity(),
+                        'id' => $order_id,
+                                        );
+
+            $http_args = array(
+            'method'      => 'POST',
+            'timeout'     => MINUTE_IN_SECONDS,
+            'redirection' => 0,
+            'httpversion' => '1.0',
+            'blocking'    => true,
+            'user-agent'  => sprintf( 'WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version'] ),
+            'body'        => trim( wp_json_encode( $payload ) ),
+            'headers'     => array(
+                'Content-Type' => 'application/json',
+            ),
+            'cookies'     => array(),
+            );
+            // Add custom headers.
+            $http_args['headers']['X-WC-Webhook-Source']      = home_url( '/' ); // Since 2.6.0.
+
+            // Webhook away!
+            $response = wp_safe_remote_request( 'http://sakura/api/widget/event', $http_args );
+                if($response instanceof WP_Error) {
+                    error_log(sprintf('response:#%s', json_encode($response->get_error_messages())));
+                } else {
+                    error_log(sprintf('response:#%s', json_encode($response)));
+                }
+
+            };
+    }
+#+END_SRC
+*** add_to_cart
+#+BEGIN_SRC php
+    /**
+    * add to cart
+    */
+    public function add_to_cart($arg ) {
+            $logger = wc_get_logger();
+            error_log(sprintf('notify sakura for add to cart: #%s', $arg));
+    }
+#+END_SRC
+*** payment complete
+#+BEGIN_SRC php
+    /**
+    * payment complete
+    */
+        public function payment_complete($order_id)
+        {
+            $logger = wc_get_logger();
+            error_log(sprintf('notify sakura for payment complete: #%d', $order_id));
+        }
+
 #+END_SRC
 
 ** singletone of Main class
@@ -196,8 +340,8 @@ Please note that we have to [[https://stackoverflow.com/a/3230167][update cookie
 
 #+END_SRC
 
-** initialization
-We can run our initialization codes in action [[https://github.com/woocommerce/woocommerce/blob/4.9.2/includes/class-woocommerce.php#L592][woocommerce_init]], which will be called after plugins loaded.
+# ** initialization
+# We can run our initialization codes in action [[https://github.com/woocommerce/woocommerce/blob/4.9.2/includes/class-woocommerce.php#L592][woocommerce_init]], which will be called after plugins loaded.
 
 * Load the instance of main class
 #+BEGIN_SRC php
@@ -240,7 +384,7 @@ function __construct() {
         __('Sakura Network', 'sakura_widget_domain'),
 
         // Widget description
-        array( 'description' => __('A Widget for your Sakura network', 'sakura_widget_domain' ), )
+        array( 'description' => __('A widget for your Sakura network', 'sakura_widget_domain' ), )
     );
   }
 #+END_SRC
@@ -250,9 +394,10 @@ This is where we define the output generated by the widget.
 We put the source articles in the local cookie to the URL when request widget from Sakura.eco.
 It is an easy solution for now and we can update it later if the URL size is too large.
 #+BEGIN_SRC php
-	    // Creating widget front-end
+// Creating widget front-end
 public function widget( $args, $instance ) {
     if ( isset( $instance[ 'title' ] ) ) {
+
         $title = $instance['title'];
     } else {
         $title = __('Sakura Network', 'wpb_widget_domain');
@@ -283,7 +428,7 @@ This part of the code is where we create the form with widget options for backen
 We can setup widget URL by wordpress's [[https://developer.wordpress.org/reference/functions/site_url/][site url]] automatically later.
 
 #+BEGIN_SRC php
-    // Widget Backend
+// Widget Backend
     public function form( $instance ) {
         if ( isset( $instance[ 'title' ] ) ) {
             $title = $instance['title'];
@@ -292,6 +437,8 @@ We can setup widget URL by wordpress's [[https://developer.wordpress.org/referen
         }
         $url = ! empty( $instance['url'] ) ? $instance['url'] : esc_html__( 'Please input the widget URL', 'text_domain' );
         // Widget admin form
+
+
         ?>
         <p>
         <label for="<?php echo $this->get_field_id( 'url' ); ?>"><?php _e( 'Url:' ); ?></label>
@@ -304,7 +451,7 @@ We can setup widget URL by wordpress's [[https://developer.wordpress.org/referen
 *** update
 This is the part where we save widget options in the database.
 #+BEGIN_SRC php
-    // Updating widget replacing old instances with new
+// Updating widget replacing old instances with new
     public function update( $new_instance, $old_instance ) {
         $instance = array();
         $instance['url'] = ( ! empty( $new_instance['url'] ) ) ? strip_tags( $new_instance['url'] ) : '';
@@ -320,6 +467,26 @@ function sakura_load_widget() {
     register_widget( 'Sakura_widget' );
 }
 add_action( 'widgets_init', 'sakura_load_widget' );
+#+END_SRC
+* Development setup
+** disable safe url check
+This idea comes from [[https://dev.to/manuelmolina97/handling-multiple-environments-in-raw-php-3788][this link]].
+*** add development environment value in nginx
+#+begin_src conf
+fastcgi_param SAKURA_DEV true;
+#+end_src
+*** disable rejecting unsafe urls by a wordpress filter
+As our local development use a http request or a self signed https cert, we have to disable the rejecting of unsafe urls.
+#+name sakura-dev-hooks
+#+BEGIN_SRC php
+if(isset($_SERVER['SAKURA_DEV'])){
+    add_filter( 'http_request_args', function ( $args ) {
+
+        $args['reject_unsafe_urls'] = false;
+
+        return $args;
+    }, 999 );
+ }
 #+END_SRC
 
 * TODO readme
