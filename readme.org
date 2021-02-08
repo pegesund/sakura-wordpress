@@ -243,6 +243,7 @@ The idea is from the web hooks mechanism of WooCommerce.
 #+END_SRC
 
 *** new order
+http://hookr.io/actions/woocommerce_new_order/
 #+BEGIN_SRC php
     /**
     * New order
