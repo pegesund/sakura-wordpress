@@ -20,6 +20,6 @@ add_filter( 'http_request_args', function ( $args ) {
 }, 999 );
 
 function read_sakura_server_for_dev ($arg) {
-  return file_get_contents('/srv/sakura_address.txt');
+  return file_get_contents( get_home_path() . 'sakura_address.txt');
 }
 add_filter( 'sakura_update_server_address', 'read_sakura_server_for_dev', 999 );
