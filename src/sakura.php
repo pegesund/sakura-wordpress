@@ -63,7 +63,6 @@ final class Sakura {
          private function init_hooks() {
        add_action( 'init', array( $this, 'init' ), 0 );
        add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
-       <<sakura-dev-hooks>>
   
        // a uniform interface to woocommerce events.
        add_action( 'woocommerce_new_order', function ($order_id) {
@@ -162,14 +161,13 @@ final class Sakura {
           // Add custom headers.
           $http_args['headers']['X-WC-Webhook-Source']      = home_url( '/' ); // Since 2.6.0.
   
-          // Webhook away!
-          $response = wp_safe_remote_request( 'http://sakura/api/widget/event', $http_args );
+          $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
+          $response = wp_safe_remote_request(sprintf('%s/api/widget/event', $sakura_server), $http_args );
               if($response instanceof WP_Error) {
                   error_log(sprintf('response:#%s', json_encode($response->get_error_messages())));
               } else {
                   error_log(sprintf('response:#%s', json_encode($response)));
               }
-  
           };
   }
   /**
@@ -305,14 +303,3 @@ function sakura_load_widget() {
     register_widget( 'Sakura_widget' );
 }
 add_action( 'widgets_init', 'sakura_load_widget' );
-
-if(isset($_SERVER['SAKURA_DEV'])){
-    add_filter( 'http_request_args', function ( $args ) {
-
-        $args['reject_unsafe_urls'] = false;
-
-        return $args;
-    }, 999 );
- }
-
-fastcgi_param SAKURA_DEV true;

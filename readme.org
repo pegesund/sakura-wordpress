@@ -41,9 +41,9 @@
     - [[#update][update]]
   - [[#load-widget][load widget]]
 - [[#development-setup][Development setup]]
-  - [[#disable-safe-url-check][disable safe url check]]
-    - [[#add-development-environment-value-in-nginx][add development environment value in nginx]]
-    - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
+  - [[#headers-for-this-plugin][headers for this plugin]]
+  - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
+  - [[#return-sakura-server-address-from-a-local-file][return sakura server address from a local file.]]
 - [[#readme][readme]]
 
 * References
@@ -144,7 +144,6 @@ You can check WooCommerce's [[https://woocommerce.github.io/code-reference/hooks
 	private function init_hooks() {
       add_action( 'init', array( $this, 'init' ), 0 );
       add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
-      <<sakura-dev-hooks>>
 
       // a uniform interface to woocommerce events.
       add_action( 'woocommerce_new_order', function ($order_id) {
@@ -276,14 +275,13 @@ The idea is from the web hooks mechanism of WooCommerce.
             // Add custom headers.
             $http_args['headers']['X-WC-Webhook-Source']      = home_url( '/' ); // Since 2.6.0.
 
-            // Webhook away!
-            $response = wp_safe_remote_request( 'http://sakura/api/widget/event', $http_args );
+            $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
+            $response = wp_safe_remote_request(sprintf('%s/api/widget/event', $sakura_server), $http_args );
                 if($response instanceof WP_Error) {
                     error_log(sprintf('response:#%s', json_encode($response->get_error_messages())));
                 } else {
                     error_log(sprintf('response:#%s', json_encode($response)));
                 }
-
             };
     }
 #+END_SRC
@@ -469,24 +467,47 @@ function sakura_load_widget() {
 add_action( 'widgets_init', 'sakura_load_widget' );
 #+END_SRC
 * Development setup
-** disable safe url check
-This idea comes from [[https://dev.to/manuelmolina97/handling-multiple-environments-in-raw-php-3788][this link]].
-*** add development environment value in nginx
-#+begin_src conf
-fastcgi_param SAKURA_DEV true;
-#+end_src
-*** disable rejecting unsafe urls by a wordpress filter
-As our local development use a http request or a self signed https cert, we have to disable the rejecting of unsafe urls.
-#+name sakura-dev-hooks
+:PROPERTIES:
+:header-args: :tangle ./sakura_dev.php
+:END:
+In development environment, we need some additional setup, this is done by an additional wordpress plugin,
+which added some filters to change the behavior of the official sakura plugin.
+It should not be included in official environment.
+** headers for this plugin
 #+BEGIN_SRC php
-if(isset($_SERVER['SAKURA_DEV'])){
+<?php
+/**
+ * @package The development plugin for Sakura Network.
+ * @version 1.0.0
+ */
+/*
+Plugin Name: Sakura network internal development
+Plugin URI: https://sakura.eco/
+Description: This is just a plugin for development use only, to make us local development easy.
+Author: Sakura.eco
+Version: 1.0.0
+Author URI: https://sakura.eco/
+*/
+#+END_SRC
+
+** disable rejecting unsafe urls by a wordpress filter
+This idea comes from [[https://dev.to/manuelmolina97/handling-multiple-environments-in-raw-php-3788][this link]].
+As our local development use a http request or a self signed https cert, we have to disable the rejecting of unsafe urls.
+Otherwise =wp_safe_remote_request= will fail.
+#+BEGIN_SRC php
     add_filter( 'http_request_args', function ( $args ) {
 
         $args['reject_unsafe_urls'] = false;
 
         return $args;
     }, 999 );
- }
+#+END_SRC
+** return sakura server address from a local file.
+#+BEGIN_SRC php
+function read_sakura_server_for_dev ($arg) {
+  return file_get_contents('/srv/sakura_address.txt');
+}
+add_filter( 'sakura_update_server_address', 'read_sakura_server_for_dev', 999 );
 #+END_SRC
 
 * TODO readme
