@@ -40,7 +40,7 @@
     - [[#form][form]]
     - [[#update][update]]
   - [[#load-widget][load widget]]
-- [[#development-setup][Development setup]]
+- [[#plugin-for-sakura-development-environment][Plugin for Sakura development environment]]
   - [[#headers-for-this-plugin][headers for this plugin]]
   - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
   - [[#return-sakura-server-address-from-a-local-file][return sakura server address from a local file.]]
@@ -465,7 +465,7 @@ function sakura_load_widget() {
 }
 add_action( 'widgets_init', 'sakura_load_widget' );
 #+END_SRC
-* Development setup
+* Plugin for Sakura development environment
 :PROPERTIES:
 :header-args: :tangle ./sakura_dev.php
 :END:
