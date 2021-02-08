@@ -19,7 +19,15 @@ add_filter( 'http_request_args', function ( $args ) {
     return $args;
 }, 999 );
 
+// Ensure get_home_path() is declared.
+require_once ABSPATH . 'wp-admin/includes/file.php';
+
 function read_sakura_server_for_dev ($arg) {
-  return file_get_contents( get_home_path() . 'sakura_address.txt');
+  return trim(file_get_contents( get_home_path() . 'sakura_address.txt'));
 }
 add_filter( 'sakura_update_server_address', 'read_sakura_server_for_dev', 999 );
+
+function log_sakura_plugin_activity ($message) {
+    error_log($message);
+}
+add_action( 'sakura_record_activity', 'log_sakura_plugin_activity');

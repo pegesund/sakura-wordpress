@@ -44,6 +44,7 @@
   - [[#headers-for-this-plugin][headers for this plugin]]
   - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
   - [[#return-sakura-server-address-from-a-local-file][return sakura server address from a local file.]]
+  - [[#log-activities-from-our-plugin][log activities from our plugin]]
 - [[#readme][readme]]
 
 * References
@@ -249,7 +250,7 @@ The idea is from the web hooks mechanism of WooCommerce.
     public function new_order($order_id) {
 				$order = wc_get_order( $order_id );
 
-            error_log(sprintf('notify sakura for new order: #%d', $order_id));
+        do_action('sakura_record_activity', sprintf('notify sakura for new order: #%d', $order_id));
         foreach ( $order->get_items() as $item_id => $item ) {
             $product    = $item->get_product();
             $payload = array(
@@ -278,9 +279,9 @@ The idea is from the web hooks mechanism of WooCommerce.
             $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
             $response = wp_safe_remote_request(sprintf('%s/api/widget/event', $sakura_server), $http_args );
                 if($response instanceof WP_Error) {
-                    error_log(sprintf('response:#%s', json_encode($response->get_error_messages())));
+                    do_action('sakura_record_activity', sprintf('failed send new cart event:#%s', json_encode($response->get_error_messages())));
                 } else {
-                    error_log(sprintf('response:#%s', json_encode($response)));
+                    do_action('sakura_record_activity', sprintf('send new cart event with response:#%s', json_encode($response)));
                 }
             };
     }
@@ -291,8 +292,7 @@ The idea is from the web hooks mechanism of WooCommerce.
     * add to cart
     */
     public function add_to_cart($arg ) {
-            $logger = wc_get_logger();
-            error_log(sprintf('notify sakura for add to cart: #%s', $arg));
+        do_action('sakura_record_activity', sprintf('notify sakura for add to cart: #%s', $arg));
     }
 #+END_SRC
 *** payment complete
@@ -302,8 +302,7 @@ The idea is from the web hooks mechanism of WooCommerce.
     */
         public function payment_complete($order_id)
         {
-            $logger = wc_get_logger();
-            error_log(sprintf('notify sakura for payment complete: #%d', $order_id));
+            do_action('sakura_record_activity', sprintf('notify sakura for payment complete: #%d', $order_id));
         }
 
 #+END_SRC
@@ -505,10 +504,20 @@ Otherwise =wp_safe_remote_request= will fail.
 ** return sakura server address from a local file.
 It is very convenient for our development and test environment before release to product environment.
 #+BEGIN_SRC php
+// Ensure get_home_path() is declared.
+require_once ABSPATH . 'wp-admin/includes/file.php';
+
 function read_sakura_server_for_dev ($arg) {
-  return file_get_contents( get_home_path() . 'sakura_address.txt');
+  return trim(file_get_contents( get_home_path() . 'sakura_address.txt'));
 }
 add_filter( 'sakura_update_server_address', 'read_sakura_server_for_dev', 999 );
+#+END_SRC
+** log activities from our plugin
+#+BEGIN_SRC php
+function log_sakura_plugin_activity ($message) {
+    error_log($message);
+}
+add_action( 'sakura_record_activity', 'log_sakura_plugin_activity');
 #+END_SRC
 
 * TODO readme

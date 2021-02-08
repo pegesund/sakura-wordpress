@@ -135,7 +135,7 @@ final class Sakura {
   public function new_order($order_id) {
   			    $order = wc_get_order( $order_id );
   
-          error_log(sprintf('notify sakura for new order: #%d', $order_id));
+      do_action('sakura_record_activity', sprintf('notify sakura for new order: #%d', $order_id));
       foreach ( $order->get_items() as $item_id => $item ) {
           $product    = $item->get_product();
           $payload = array(
@@ -164,9 +164,9 @@ final class Sakura {
           $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
           $response = wp_safe_remote_request(sprintf('%s/api/widget/event', $sakura_server), $http_args );
               if($response instanceof WP_Error) {
-                  error_log(sprintf('response:#%s', json_encode($response->get_error_messages())));
+                  do_action('sakura_record_activity', sprintf('failed send new cart event:#%s', json_encode($response->get_error_messages())));
               } else {
-                  error_log(sprintf('response:#%s', json_encode($response)));
+                  do_action('sakura_record_activity', sprintf('send new cart event with response:#%s', json_encode($response)));
               }
           };
   }
@@ -174,16 +174,14 @@ final class Sakura {
   * add to cart
   */
   public function add_to_cart($arg ) {
-          $logger = wc_get_logger();
-          error_log(sprintf('notify sakura for add to cart: #%s', $arg));
+      do_action('sakura_record_activity', sprintf('notify sakura for add to cart: #%s', $arg));
   }
   /**
   * payment complete
   */
       public function payment_complete($order_id)
       {
-          $logger = wc_get_logger();
-          error_log(sprintf('notify sakura for payment complete: #%d', $order_id));
+          do_action('sakura_record_activity', sprintf('notify sakura for payment complete: #%d', $order_id));
       }
   
   
