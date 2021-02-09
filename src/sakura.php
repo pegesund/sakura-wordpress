@@ -241,17 +241,27 @@ class Sakura_widget extends WP_Widget {
     }
   // Creating widget front-end
   public function widget( $args, $instance ) {
+  		global $post;
       if ( isset( $instance[ 'title' ] ) ) {
   
           $title = $instance['title'];
       } else {
           $title = __('Sakura Network', 'wpb_widget_domain');
       }
+  
+      $query_args = array();
+  
       $url = apply_filters( 'widget_url', $instance['url'] );
       if (isset( $_COOKIE["sakura_from"] )) {
-          $url = $url . "?from=" .  $_COOKIE["sakura_from"];
-      } else {
-          $articles = '';
+          $query_args['from'] = $_COOKIE["sakura_from"];
+      }
+      $product = wc_get_product();
+      if ($product) {
+          $query_args['id'] = $product->get_id();
+          $query_args['sku'] = $product->get_sku();
+      }
+      if (sizeof($query_args) > 0) {
+          $url = $url . '?' . http_build_query($query_args);
       }
   
       // before and after widget arguments are defined by themes
