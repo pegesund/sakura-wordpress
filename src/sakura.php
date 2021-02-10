@@ -61,7 +61,7 @@ final class Sakura {
   	* @since 2.3
   	*/
          private function init_hooks() {
-       add_action( 'init', array( $this, 'init' ), 0 );
+       add_action( 'init', array( $this, 'init' ), 999 );
        add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
   
        // a uniform interface to woocommerce events.
@@ -85,23 +85,30 @@ final class Sakura {
       public function init() {
     // Classes/actions loaded for the frontend and for ajax requests.
   if (( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' )) {
-      $this->store_sakura_from_in_cookie();
+  
+      $this->store_sakura_history_in_cookie();
   }
       }
   
   /**
   * Store site/articles from sakura networks.
   */
-  public function store_sakura_from_in_cookie() {
+  public function store_sakura_history_in_cookie() {
       if (isset($_GET["sakura_from"])) {
           $article = rawurlencode($_GET["sakura_from"]);
-          if (isset( $_COOKIE["sakura_from"] )) {
-              $articles = $_COOKIE["sakura_from"] . "," . $article;
+  
+          if (isset( $_COOKIE["sakura_history"] )) {
+              $history = $_COOKIE["sakura_history"] . "," . $article;
           } else {
-              $articles = $article;
+              $history = sprintf('%s', $article);
           }
-          wc_setcookie("sakura_from", $articles, time() - MONTH_IN_SECONDS);
-          $_COOKIE["sakura_from"] = $articles;
+  
+          $product = wc_get_product();
+          if ($product) {
+            $history = $history . ":" . ($product->get_id()) . "," . ($product->get_sku());
+          }
+          wc_setcookie("sakura_history", $history, time() + MONTH_IN_SECONDS);
+          $_COOKIE["sakura_history"] = $history;
       }
   }
   /**
@@ -252,8 +259,8 @@ class Sakura_widget extends WP_Widget {
       $query_args = array();
   
       $url = apply_filters( 'widget_url', $instance['url'] );
-      if (isset( $_COOKIE["sakura_from"] )) {
-          $query_args['from'] = $_COOKIE["sakura_from"];
+      if (isset( $_COOKIE["sakura_history"] )) {
+          $query_args['history'] = $_COOKIE["sakura_history"];
       }
       $product = wc_get_product();
       if ($product) {
