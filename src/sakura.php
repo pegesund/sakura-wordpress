@@ -105,7 +105,7 @@ final class Sakura {
   
           $product = wc_get_product();
           if ($product) {
-            $history = $history . ":" . ($product->get_id()) . "," . ($product->get_sku());
+            $history = $history . ":" . ($product->get_id()) . "-" . ($product->get_sku());
           }
           wc_setcookie("sakura_history", $history, time() + MONTH_IN_SECONDS);
           $_COOKIE["sakura_history"] = $history;

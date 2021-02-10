@@ -199,7 +199,7 @@ Please note that we have to [[https://stackoverflow.com/a/3230167][update cookie
 
             $product = wc_get_product();
             if ($product) {
-              $history = $history . ":" . ($product->get_id()) . "," . ($product->get_sku());
+              $history = $history . ":" . ($product->get_id()) . "-" . ($product->get_sku());
             }
             wc_setcookie("sakura_history", $history, time() + MONTH_IN_SECONDS);
             $_COOKIE["sakura_history"] = $history;
