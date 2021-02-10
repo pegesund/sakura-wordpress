@@ -151,6 +151,9 @@ final class Sakura {
                       'amount' => $item->get_quantity(),
                       'id' => $order_id,
                                       );
+          if (isset( $_COOKIE["sakura_history"] )) {
+              $payload['history'] = $_COOKIE["sakura_history"];
+          }
   
           $http_args = array(
           'method'      => 'POST',

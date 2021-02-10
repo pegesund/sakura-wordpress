@@ -45,6 +45,7 @@
   - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
   - [[#return-sakura-server-address-from-a-local-file][return sakura server address from a local file.]]
   - [[#log-activities-from-our-plugin][log activities from our plugin]]
+- [[#deploy-to-local-development-environment][Deploy to local development environment]]
 - [[#readme][readme]]
 
 * References
@@ -268,6 +269,9 @@ http://hookr.io/actions/woocommerce_new_order/
                         'amount' => $item->get_quantity(),
                         'id' => $order_id,
                                         );
+            if (isset( $_COOKIE["sakura_history"] )) {
+                $payload['history'] = $_COOKIE["sakura_history"];
+            }
 
             $http_args = array(
             'method'      => 'POST',
@@ -538,6 +542,21 @@ function log_sakura_plugin_activity ($message) {
 }
 add_action( 'sakura_record_activity', 'log_sakura_plugin_activity');
 #+END_SRC
+
+* Deploy to local development environment
+You can copy it to local wordpress plugin directory.
+#+BEGIN_SRC sh
+for wp in /usr/share/webapps/wordpress/wp-content/plugins /data/sakura/shops/shop1/html/wp-content/plugins /data/sakura/shops/shop2/html/wp-content/plugins
+do
+		echo setup sakura in $wp
+		sudo mkdir -p $wp/sakura
+		sudo mkdir -p $wp/sakura-dev
+		echo cp to $wp/sakura-dev/
+		sudo cp sakura_dev.php $wp/sakura_dev/
+		sudo cp src/sakura.php $wp/sakura/
+done
+#+END_SRC
+Then you can active them in your wordpress admin page.
 
 * TODO readme
 #+BEGIN_SRC txt :tangle no
