@@ -545,13 +545,15 @@ add_action( 'sakura_record_activity', 'log_sakura_plugin_activity');
 
 * Deploy to local development environment
 You can copy it to local wordpress plugin directory.
+
+For example:
 #+BEGIN_SRC sh
-for wp in /usr/share/webapps/wordpress/wp-content/plugins /data/sakura/shops/shop1/html/wp-content/plugins /data/sakura/shops/shop2/html/wp-content/plugins
+for wp in /data/sakura/shops/shop1/html/wp-content/plugins /data/sakura/shops/shop2/html/wp-content/plugins
 do
 		echo setup sakura in $wp
 		sudo mkdir -p $wp/sakura
-		sudo mkdir -p $wp/sakura-dev
-		echo cp to $wp/sakura-dev/
+		sudo mkdir -p $wp/sakura_dev
+		echo cp to $wp/sakura_dev/
 		sudo cp sakura_dev.php $wp/sakura_dev/
 		sudo cp src/sakura.php $wp/sakura/
 done
