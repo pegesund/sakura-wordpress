@@ -696,8 +696,9 @@ You can copy it to local wordpress plugin directory.
 
 For example:
 #+BEGIN_SRC sh :tangle no
-for wp in /data/sakura/shops/shop1/html/wp-content/plugins /data/sakura/shops/shop2/html/wp-content/plugins
+for shop in shop1 shop2
 do
+		wp=/data/sakura/shops/$shop/html/wp-content/plugins
 		echo setup sakura in $wp
 		sudo mkdir -p $wp/sakura
 		sudo mkdir -p $wp/sakura_dev
