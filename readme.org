@@ -15,8 +15,8 @@
   - [[#header][header]]
   - [[#prevent-data-leaks][Prevent Data Leaks]]
   - [[#check-if-woocommerce-is-active][Check if WooCommerce is active]]
-  - [[#a-class-for-this-plugin][a class for this plugin]]
 - [[#implementation-of-main-class][Implementation of main class]]
+  - [[#class-definition][class definition]]
   - [[#version-and-construct-of-main-class][version and construct of main class]]
   - [[#constructor-of-main-class][constructor of main class]]
   - [[#init-hooks][init hooks]]
@@ -34,12 +34,23 @@
 - [[#load-the-instance-of-main-class][Load the instance of main class]]
 - [[#a-widget-for-sakura-network][A Widget for Sakura network]]
   - [[#definition][definition]]
-  - [[#implementation][implementation]]
-    - [[#construct][construct]]
-    - [[#widget][widget]]
-    - [[#form][form]]
-    - [[#update][update]]
+  - [[#construct][construct]]
+  - [[#widget][widget]]
+  - [[#form][form]]
+  - [[#update][update]]
   - [[#load-widget][load widget]]
+- [[#sakura-network-setttings-page][Sakura Network Setttings page]]
+  - [[#a-class-for-this-page][a class for this page]]
+  - [[#a-value-to-hold-the-options][a value to hold the options]]
+  - [[#contruct-to-add-hooks][contruct to add hooks]]
+  - [[#add-menu-for-setting-page][add menu for setting page]]
+  - [[#add-setting-page][add setting page]]
+  - [[#initialize-page][initialize page]]
+  - [[#sanitize_callback][sanitize_callback]]
+  - [[#section-info][section info]]
+  - [[#callback-for-widget-key][callback for widget key]]
+  - [[#create-setting-page-if-admin][create setting page if admin]]
+  - [[#how-to-retrive-setting-value][how to retrive setting value]]
 - [[#plugin-for-sakura-development-environment][Plugin for Sakura development environment]]
   - [[#headers-for-this-plugin][headers for this plugin]]
   - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
@@ -97,8 +108,12 @@ if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins'
     exit;
 }
 #+END_SRC
-** a class for this plugin
-#+BEGIN_SRC php
+* Implementation of main class
+:PROPERTIES:
+:header-args: :noweb yes :tangle no :noweb-ref sakura-main-class
+:END:
+** class definition
+#+BEGIN_SRC php :tangle ./src/sakura.php :noweb-ref ""
 /**
  * Main Sakura Class.
  *
@@ -109,11 +124,9 @@ final class Sakura {
   <<sakura-main-vars>>
   <<sakura-main-class>>
 }
+
 #+END_SRC
-* Implementation of main class
-:PROPERTIES:
-:header-args: :tangle no :noweb-ref sakura-main-class
-:END:
+
 ** version and construct of main class
 #+BEGIN_SRC php
 	/**
@@ -253,19 +266,24 @@ The idea is from the web hooks mechanism of WooCommerce.
 
 *** new order
 http://hookr.io/actions/woocommerce_new_order/
+Please note that we use sku as the unique id in the sakura side.
 #+BEGIN_SRC php
     /**
     * New order
     */
     public function new_order($order_id) {
 				$order = wc_get_order( $order_id );
+        $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+        $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
 
         do_action('sakura_record_activity', sprintf('notify sakura for new order: #%d', $order_id));
         foreach ( $order->get_items() as $item_id => $item ) {
             $product    = $item->get_product();
             $payload = array(
                         'event' => 'purchase',
-                        'to_article' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
+                        'product-id' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
+                        'sakura-widget-key' => $sakura_widget_key,
+                        'sku' => $product->get_sku(),
                         'amount' => $item->get_quantity(),
                         'id' => $order_id,
                                         );
@@ -368,21 +386,20 @@ function SC() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.Fu
 $GLOBALS['sakura'] = SC();
 #+END_SRC
 * A Widget for Sakura network
+:PROPERTIES:
+:header-args: :noweb yes :tangle no :noweb-ref sakura-widget
+:END:
 [[https://www.wpbeginner.com/wp-tutorials/how-to-create-a-custom-wordpress-widget/][How to Create a Custom WordPress Widget]]
 ** definition
-#+BEGIN_SRC php
+#+BEGIN_SRC php :tangle ./src/sakura.php :noweb-ref ""
 class Sakura_widget extends WP_Widget {
   <<sakura-widget>>
   // Class sakura_widget ends here
 }
 #+END_SRC
-** implementation
-:PROPERTIES:
-:header-args: :tangle no :noweb-ref sakura-widget
-:END:
-*** construct
+** construct
 This is the part where we create the widget ID, title, and description.
-#+BEGIN_SRC php :noweb-ref sakura-widget
+#+BEGIN_SRC php
 // Creating the widget
 function __construct() {
     parent::__construct(
@@ -398,7 +415,7 @@ function __construct() {
     );
   }
 #+END_SRC
-*** widget
+** widget
 This is where we define the output generated by the widget.
 
 We put the source articles in the local cookie to the URL when request widget from Sakura.eco.
@@ -415,8 +432,12 @@ public function widget( $args, $instance ) {
     }
 
     $query_args = array();
+    $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+    $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
 
-    $url = apply_filters( 'widget_url', $instance['url'] );
+    $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
+    $url = $sakura_server . '/widget/' . $sakura_widget_key;
+
     if (isset( $_COOKIE["sakura_history"] )) {
         $query_args['history'] = $_COOKIE["sakura_history"];
     }
@@ -442,7 +463,7 @@ public function widget( $args, $instance ) {
 }
 
 #+END_SRC
-*** form
+** form
 This part of the code is where we create the form with widget options for backend.
 
 We can setup widget URL by wordpress's [[https://developer.wordpress.org/reference/functions/site_url/][site url]] automatically later.
@@ -461,14 +482,12 @@ We can setup widget URL by wordpress's [[https://developer.wordpress.org/referen
 
         ?>
         <p>
-        <label for="<?php echo $this->get_field_id( 'url' ); ?>"><?php _e( 'Url:' ); ?></label>
-        <input class="widefat" id="<?php echo $this->get_field_id( 'url' ); ?>"
-        name="<?php echo $this->get_field_name( 'url' ); ?>" type="text" value="<?php echo esc_attr( $url ); ?>" />
+         Please setup this widget via <a href="/wp-admin/admin.php?page=sakura-network">Sakura Network menu</a>.
         </p>
 <?php
     }
 #+END_SRC
-*** update
+** update
 This is the part where we save widget options in the database.
 #+BEGIN_SRC php
 // Updating widget replacing old instances with new
@@ -481,13 +500,142 @@ This is the part where we save widget options in the database.
 
 #+END_SRC
 ** load widget
-#+BEGIN_SRC php
+#+BEGIN_SRC php :tangle ./src/sakura.php :noweb-ref ""
 // Register and load the widget
 function sakura_load_widget() {
     register_widget( 'Sakura_widget' );
 }
 add_action( 'widgets_init', 'sakura_load_widget' );
 #+END_SRC
+* Sakura Network Setttings page
+:PROPERTIES:
+:header-args: :noweb yes :noweb-ref sakura-network-functions :tangle no
+:END:
+We need a admin page to set up company id and widget key in wordpress.
+It will shown in wordpress dashboard page.
+** a class for this page
+Generated by the WordPress Option Page generator at http://jeremyhixon.com/wp-tools/option-page/
+#+BEGIN_SRC php :tangle ./src/sakura.php :noweb-ref ""
+class SakuraNetwork {
+  <<sakura-network-vars>>
+  <<sakura-network-functions>>
+}
+#+END_SRC
+** a value to hold the options
+#+BEGIN_SRC php :noweb-ref sakura-network-vars
+	private $sakura_network_options;
+#+END_SRC
+** contruct to add hooks
+#+BEGIN_SRC php
+	public function __construct() {
+		add_action( 'admin_menu', array( $this, 'sakura_network_add_plugin_page' ) );
+		add_action( 'admin_init', array( $this, 'sakura_network_page_init' ) );
+	}
+#+END_SRC
+** add menu for setting page
+#+BEGIN_SRC php
+	public function sakura_network_add_plugin_page() {
+		add_menu_page(
+			'Sakura Network', // page_title
+			'Sakura Network', // menu_title
+			'manage_options', // capability
+			'sakura-network', // menu_slug
+			array( $this, 'sakura_network_create_admin_page' ), // function
+			'dashicons-admin-settings', // icon_url
+			2 // position
+		);
+	}
+#+END_SRC
+** add setting page
+#+BEGIN_SRC php
+	public function sakura_network_create_admin_page() {
+		$this->sakura_network_options = get_option( 'sakura_network_option' ); ?>
+
+		<div class="wrap">
+			<h2>Sakura Network</h2>
+			<p>Sakura Network Options</p>
+			<?php settings_errors(); ?>
+
+			<form method="post" action="options.php">
+				<?php
+					settings_fields( 'sakura_network_option_group' );
+					do_settings_sections( 'sakura-network-admin' );
+					submit_button();
+				?>
+			</form>
+		</div>
+	<?php }
+#+END_SRC
+** initialize page
+#+BEGIN_SRC php
+	public function sakura_network_page_init() {
+		register_setting(
+			'sakura_network_option_group', // option_group
+			'sakura_network_option', // option_name
+			array( $this, 'sakura_network_sanitize' ) // sanitize_callback
+		);
+
+		add_settings_section(
+			'sakura_network_setting_section', // id
+			'Settings', // title
+			array( $this, 'sakura_network_section_info' ), // callback
+			'sakura-network-admin' // page
+		);
+
+		add_settings_field(
+			'sakura_widget_key', // id
+			'Sakura Widget key', // title
+			array( $this, 'sakura_widget_key_callback' ), // callback
+			'sakura-network-admin', // page
+			'sakura_network_setting_section' // section
+		);
+	}
+#+END_SRC
+** sanitize_callback
+#+BEGIN_SRC php
+	public function sakura_network_sanitize($input) {
+		$sanitary_values = array();
+		if ( isset( $input['sakura_company_id'] ) ) {
+			$sanitary_values['sakura_company_id'] = sanitize_text_field( $input['sakura_company_id'] );
+		}
+
+		if ( isset( $input['sakura_widget_key'] ) ) {
+			$sanitary_values['sakura_widget_key'] = sanitize_text_field( $input['sakura_widget_key'] );
+		}
+
+		return $sanitary_values;
+	}
+#+END_SRC
+** section info
+#+BEGIN_SRC php
+	public function sakura_network_section_info() {
+
+	}
+#+END_SRC
+** callback for widget key
+#+BEGIN_SRC php
+	public function sakura_widget_key_callback() {
+		printf(
+			'<input class="regular-text" type="text" name="sakura_network_option[sakura_widget_key]" id="sakura_widget_key" value="%s">',
+			isset( $this->sakura_network_options['sakura_widget_key'] ) ? esc_attr( $this->sakura_network_options['sakura_widget_key']) : ''
+		);
+	}
+
+#+END_SRC
+** create setting page if admin
+#+BEGIN_SRC php :tangle ./src/sakura.php :noweb-ref ""
+if ( is_admin() )
+	$sakura_network = new SakuraNetwork();
+#+END_SRC
+** how to retrive setting value
+#+BEGIN_SRC php :tangle no :noweb-ref ""
+/*
+ * Retrieve this value with:
+ * $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+ * $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+ */
+#+END_SRC
+
 * Plugin for Sakura development environment
 :PROPERTIES:
 :header-args: :tangle ./sakura_dev.php
@@ -547,7 +695,7 @@ add_action( 'sakura_record_activity', 'log_sakura_plugin_activity');
 You can copy it to local wordpress plugin directory.
 
 For example:
-#+BEGIN_SRC sh
+#+BEGIN_SRC sh :tangle no
 for wp in /data/sakura/shops/shop1/html/wp-content/plugins /data/sakura/shops/shop2/html/wp-content/plugins
 do
 		echo setup sakura in $wp

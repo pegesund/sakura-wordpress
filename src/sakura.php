@@ -141,13 +141,17 @@ final class Sakura {
   */
   public function new_order($order_id) {
   			    $order = wc_get_order( $order_id );
+      $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
   
       do_action('sakura_record_activity', sprintf('notify sakura for new order: #%d', $order_id));
       foreach ( $order->get_items() as $item_id => $item ) {
           $product    = $item->get_product();
           $payload = array(
                       'event' => 'purchase',
-                      'to_article' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
+                      'product-id' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
+                      'sakura-widget-key' => $sakura_widget_key,
+                      'sku' => $product->get_sku(),
                       'amount' => $item->get_quantity(),
                       'id' => $order_id,
                                       );
@@ -260,8 +264,12 @@ class Sakura_widget extends WP_Widget {
       }
   
       $query_args = array();
+      $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
   
-      $url = apply_filters( 'widget_url', $instance['url'] );
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
+      $url = $sakura_server . '/widget/' . $sakura_widget_key;
+  
       if (isset( $_COOKIE["sakura_history"] )) {
           $query_args['history'] = $_COOKIE["sakura_history"];
       }
@@ -299,9 +307,7 @@ class Sakura_widget extends WP_Widget {
   
           ?>
           <p>
-          <label for="<?php echo $this->get_field_id( 'url' ); ?>"><?php _e( 'Url:' ); ?></label>
-          <input class="widefat" id="<?php echo $this->get_field_id( 'url' ); ?>"
-          name="<?php echo $this->get_field_name( 'url' ); ?>" type="text" value="<?php echo esc_attr( $url ); ?>" />
+           Please setup this widget via <a href="/wp-admin/admin.php?page=sakura-network">Sakura Network menu</a>.
           </p>
   <?php
       }
@@ -321,3 +327,86 @@ function sakura_load_widget() {
     register_widget( 'Sakura_widget' );
 }
 add_action( 'widgets_init', 'sakura_load_widget' );
+
+class SakuraNetwork {
+  private $sakura_network_options;
+  public function __construct() {
+  	add_action( 'admin_menu', array( $this, 'sakura_network_add_plugin_page' ) );
+  	add_action( 'admin_init', array( $this, 'sakura_network_page_init' ) );
+  }
+  public function sakura_network_add_plugin_page() {
+  	add_menu_page(
+  		'Sakura Network', // page_title
+  		'Sakura Network', // menu_title
+  		'manage_options', // capability
+  		'sakura-network', // menu_slug
+  		array( $this, 'sakura_network_create_admin_page' ), // function
+  		'dashicons-admin-settings', // icon_url
+  		2 // position
+  	);
+  }
+  public function sakura_network_create_admin_page() {
+  	$this->sakura_network_options = get_option( 'sakura_network_option' ); ?>
+  
+  	<div class="wrap">
+  		<h2>Sakura Network</h2>
+  		<p>Sakura Network Options</p>
+  		<?php settings_errors(); ?>
+  
+  		<form method="post" action="options.php">
+  			<?php
+  				settings_fields( 'sakura_network_option_group' );
+  				do_settings_sections( 'sakura-network-admin' );
+  				submit_button();
+  			?>
+  		</form>
+  	</div>
+  <?php }
+  public function sakura_network_page_init() {
+  	register_setting(
+  		'sakura_network_option_group', // option_group
+  		'sakura_network_option', // option_name
+  		array( $this, 'sakura_network_sanitize' ) // sanitize_callback
+  	);
+  
+  	add_settings_section(
+  		'sakura_network_setting_section', // id
+  		'Settings', // title
+  		array( $this, 'sakura_network_section_info' ), // callback
+  		'sakura-network-admin' // page
+  	);
+  
+  	add_settings_field(
+  		'sakura_widget_key', // id
+  		'Sakura Widget key', // title
+  		array( $this, 'sakura_widget_key_callback' ), // callback
+  		'sakura-network-admin', // page
+  		'sakura_network_setting_section' // section
+  	);
+  }
+  public function sakura_network_sanitize($input) {
+  	$sanitary_values = array();
+  	if ( isset( $input['sakura_company_id'] ) ) {
+  		$sanitary_values['sakura_company_id'] = sanitize_text_field( $input['sakura_company_id'] );
+  	}
+  
+  	if ( isset( $input['sakura_widget_key'] ) ) {
+  		$sanitary_values['sakura_widget_key'] = sanitize_text_field( $input['sakura_widget_key'] );
+  	}
+  
+  	return $sanitary_values;
+  }
+  public function sakura_network_section_info() {
+  
+  }
+  public function sakura_widget_key_callback() {
+  	printf(
+  		'<input class="regular-text" type="text" name="sakura_network_option[sakura_widget_key]" id="sakura_widget_key" value="%s">',
+  		isset( $this->sakura_network_options['sakura_widget_key'] ) ? esc_attr( $this->sakura_network_options['sakura_widget_key']) : ''
+  	);
+  }
+  
+}
+
+if ( is_admin() )
+	$sakura_network = new SakuraNetwork();
