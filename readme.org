@@ -709,6 +709,7 @@ do
 		echo setup sakura in $wp
 		sudo mkdir -p $wp/sakura
 		sudo mkdir -p $wp/sakura_dev
+    echo 'http://sakura' | sudo tee $wp/../../sakura_address.txt
 		echo cp to $wp/sakura_dev/
 		sudo cp sakura_dev.php $wp/sakura_dev/
 		sudo cp src/sakura.php $wp/sakura/
