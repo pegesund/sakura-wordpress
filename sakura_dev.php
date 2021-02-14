@@ -28,6 +28,13 @@ function read_sakura_server_for_dev ($arg) {
 add_filter( 'sakura_update_server_address', 'read_sakura_server_for_dev', 999 );
 
 function log_sakura_plugin_activity ($message) {
-    error_log($message);
+    do_action( 'qm/notice', $message );
+    if (is_string($message)) {
+        error_log($message);
+    } else if ($message instanceof WP_Error) {
+        error_log(sprintf('WP_Error:#%s', json_encode($message->get_error_messages())));
+    } else {
+        error_log(json_encode($message));
+    }
 }
 add_action( 'sakura_record_activity', 'log_sakura_plugin_activity');

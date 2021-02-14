@@ -102,11 +102,14 @@ final class Sakura {
           } else {
               $history = sprintf('%s', $article);
           }
-  
-          $product = wc_get_product();
-          if ($product) {
-            $history = $history . ":" . ($product->get_id()) . "-" . ($product->get_sku());
+          if (isset($_GET["sakura_to"])) {
+            $history = $history . "-" . rawurlencode($_GET["sakura_to"]);
           }
+  
+          // $product = wc_get_product();
+          // if ($product) {
+          //   $history = $history . ":" . ($product->get_id()) . "-" . ($product->get_sku());
+          // }
           wc_setcookie("sakura_history", $history, time() + MONTH_IN_SECONDS);
           $_COOKIE["sakura_history"] = $history;
       }
@@ -140,49 +143,45 @@ final class Sakura {
   * New order
   */
   public function new_order($order_id) {
-  			    $order = wc_get_order( $order_id );
-      $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
-      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
-  
-      do_action('sakura_record_activity', sprintf('notify sakura for new order: #%d', $order_id));
-      foreach ( $order->get_items() as $item_id => $item ) {
-          $product    = $item->get_product();
-          $payload = array(
+      do_action('sakura_record_activity', sprintf('new order: #%d', $order_id));
+      if (isset( $_COOKIE["sakura_history"] )) {
+              $order = wc_get_order($order_id);
+              $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+              $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+              do_action('sakura_record_activity', sprintf('notify sakura for new order: #%d', $order_id));
+              foreach ($order->get_items() as $item_id => $item) {
+                  $product    = $item->get_product();
+                  $payload = array(
                       'event' => 'purchase',
                       'product-id' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
                       'sakura-widget-key' => $sakura_widget_key,
                       'sku' => $product->get_sku(),
                       'amount' => $item->get_quantity(),
                       'id' => $order_id,
-                                      );
-          if (isset( $_COOKIE["sakura_history"] )) {
-              $payload['history'] = $_COOKIE["sakura_history"];
+                  );
+                  $payload['history'] = $_COOKIE["sakura_history"];
+  
+                  $http_args = array(
+                      'method'      => 'POST',
+                      'timeout'     => MINUTE_IN_SECONDS,
+                      'redirection' => 0,
+                      'httpversion' => '1.0',
+                      'blocking'    => true,
+                      'user-agent'  => sprintf('WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version']),
+                      'body'        => trim(wp_json_encode($payload)),
+                      'headers'     => array(
+                          'Content-Type' => 'application/json',
+                      ),
+                      'cookies'     => array(),
+                  );
+                  // Add custom headers.
+                  $http_args['headers']['X-WC-Webhook-Source']      = home_url('/'); // Since 2.6.0.
+  
+                  $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
+                  $response = wp_safe_remote_request(sprintf('%s/api/widget/event', $sakura_server), $http_args);
+                  do_action('sakura_record_activity', $response);
+              };
           }
-  
-          $http_args = array(
-          'method'      => 'POST',
-          'timeout'     => MINUTE_IN_SECONDS,
-          'redirection' => 0,
-          'httpversion' => '1.0',
-          'blocking'    => true,
-          'user-agent'  => sprintf( 'WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version'] ),
-          'body'        => trim( wp_json_encode( $payload ) ),
-          'headers'     => array(
-              'Content-Type' => 'application/json',
-          ),
-          'cookies'     => array(),
-          );
-          // Add custom headers.
-          $http_args['headers']['X-WC-Webhook-Source']      = home_url( '/' ); // Since 2.6.0.
-  
-          $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
-          $response = wp_safe_remote_request(sprintf('%s/api/widget/event', $sakura_server), $http_args );
-              if($response instanceof WP_Error) {
-                  do_action('sakura_record_activity', sprintf('failed send new cart event:#%s', json_encode($response->get_error_messages())));
-              } else {
-                  do_action('sakura_record_activity', sprintf('send new cart event with response:#%s', json_encode($response)));
-              }
-          };
   }
   /**
   * add to cart
