@@ -5,11 +5,11 @@
  */
 /*
 Plugin Name: Sakura network internal development
-Plugin URI: https://sakura.eco/
+Plugin URI: https://www.sakura.eco/
 Description: This is just a plugin for development use only, to make us local development easy.
 Author: Sakura.eco
 Version: 1.0.0
-Author URI: https://sakura.eco/
+Author URI: https://www.sakura.eco/
 */
 
 add_filter( 'http_request_args', function ( $args ) {

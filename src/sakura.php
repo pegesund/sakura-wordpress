@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name: Sakura Network in WooCommerce
- * Plugin URI: https://sakura.eco
+ * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
  * Version: 1.0.0
  * Author: Sakura.eco
- * Author URI: https://sakura.eco/
+ * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
- * Developer URI: https://sakura.eco/
+ * Developer URI: https://www.sakura.eco/
  * Text Domain: sakura
  * Domain Path: /languages
  *
@@ -177,7 +177,7 @@ final class Sakura {
                   // Add custom headers.
                   $http_args['headers']['X-WC-Webhook-Source']      = home_url('/'); // Since 2.6.0.
   
-                  $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
+                  $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
                   $response = wp_safe_remote_request(sprintf('%s/api/widget/event', $sakura_server), $http_args);
                   do_action('sakura_record_activity', $response);
               };
@@ -266,7 +266,7 @@ class Sakura_widget extends WP_Widget {
       $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
       $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
   
-      $sakura_server = apply_filters('sakura_update_server_address', 'https://sakura.eco');
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
       $url = $sakura_server . '/widget/' . $sakura_widget_key;
   
       if (isset( $_COOKIE["sakura_history"] )) {
