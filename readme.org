@@ -218,7 +218,7 @@ Please note that we add out =init= to the end of =init= action, to ensure that W
     public function sakura_history_in_cookie() {
         $history = NULL;
         foreach($_COOKIE as $key => $value) {
-            if (str_starts_with($key, 'sakura_history_')) {
+            if (strpos($key, 'sakura_history_', 0) === 0) {
                 if (isset($history)) {
                     $history = $history . "," . $value;
                 } else {
@@ -738,7 +738,7 @@ do
 		echo setup sakura in $wp
 		sudo mkdir -p $wp/sakura
 		sudo mkdir -p $wp/sakura_dev
-    echo 'http://sakura' | sudo tee $wp/../../sakura_address.txt
+    echo 'http://172.17.0.1' | sudo tee $wp/../../sakura_address.txt
 		echo cp to $wp/sakura_dev/
 		sudo cp sakura_dev.php $wp/sakura_dev/
 		sudo cp src/sakura.php $wp/sakura/

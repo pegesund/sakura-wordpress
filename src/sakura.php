@@ -109,7 +109,7 @@ final class Sakura {
   public function sakura_history_in_cookie() {
       $history = NULL;
       foreach($_COOKIE as $key => $value) {
-          if (str_starts_with($key, 'sakura_history_')) {
+          if (strpos($key, 'sakura_history_', 0) === 0) {
               if (isset($history)) {
                   $history = $history . "," . $value;
               } else {
