@@ -91,27 +91,45 @@ final class Sakura {
       }
   
   /**
+  * Store site/articles into a local cookie.
+  */
+  public function do_store_sakura_history_in_cookie($history) {
+          $history_cookie_id = 0;
+          do {
+              $history_cookie_id++;
+              $history_cookie_name = sprintf('sakura_history_%d', $history_cookie_id);
+          } while (isset($_COOKIE[$history_cookie_name]));
+  
+          wc_setcookie($history_cookie_name, $history, time() + MONTH_IN_SECONDS);
+          $_COOKIE[$history_cookie_name] = $history;
+  }
+  /**
+  * fetch site/articles in a local cookie.
+  */
+  public function sakura_history_in_cookie() {
+      $history = NULL;
+      foreach($_COOKIE as $key => $value) {
+          if (str_starts_with($key, 'sakura_history_')) {
+              if (isset($history)) {
+                  $history = $history . "," . $value;
+              } else {
+                  $history = $value;
+              }
+          }
+      }
+      return $history;
+  }
+  /**
   * Store site/articles from sakura networks.
   */
   public function store_sakura_history_in_cookie() {
       if (isset($_GET["sakura_from"])) {
           $article = rawurlencode($_GET["sakura_from"]);
-  
-          if (isset( $_COOKIE["sakura_history"] )) {
-              $history = $_COOKIE["sakura_history"] . "," . $article;
-          } else {
-              $history = sprintf('%s', $article);
-          }
+          $history = sprintf('%s', $article);
           if (isset($_GET["sakura_to"])) {
             $history = $history . "-" . rawurlencode($_GET["sakura_to"]);
           }
-  
-          // $product = wc_get_product();
-          // if ($product) {
-          //   $history = $history . ":" . ($product->get_id()) . "-" . ($product->get_sku());
-          // }
-          wc_setcookie("sakura_history", $history, time() + MONTH_IN_SECONDS);
-          $_COOKIE["sakura_history"] = $history;
+          $this->do_store_sakura_history_in_cookie ($history);
       }
   }
   /**
@@ -144,7 +162,8 @@ final class Sakura {
   */
   public function new_order($order_id) {
       do_action('sakura_record_activity', sprintf('new order: #%d', $order_id));
-      if (isset( $_COOKIE["sakura_history"] )) {
+      $history = $this->sakura_history_in_cookie();
+      if (isset($history)) {
               $order = wc_get_order($order_id);
               $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
               $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
@@ -159,7 +178,7 @@ final class Sakura {
                       'amount' => $item->get_quantity(),
                       'id' => $order_id,
                   );
-                  $payload['history'] = $_COOKIE["sakura_history"];
+                  $payload['history'] = $history;
   
                   $http_args = array(
                       'method'      => 'POST',
@@ -269,8 +288,9 @@ class Sakura_widget extends WP_Widget {
       $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
       $url = $sakura_server . '/widget/' . $sakura_widget_key;
   
-      if (isset( $_COOKIE["sakura_history"] )) {
-          $query_args['history'] = $_COOKIE["sakura_history"];
+      $history = SC()->sakura_history_in_cookie();
+      if (isset($history)) {
+          $query_args['history'] = $history;
       }
       $product = wc_get_product();
       if ($product) {
