@@ -63,6 +63,7 @@ final class Sakura {
          private function init_hooks() {
        add_action( 'init', array( $this, 'init' ), 999 );
        add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
+       add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
   
        // a uniform interface to woocommerce events.
        add_action( 'woocommerce_new_order', function ($order_id) {
@@ -216,6 +217,13 @@ final class Sakura {
           do_action('sakura_record_activity', sprintf('notify sakura for payment complete: #%d', $order_id));
       }
   
+  /**
+  * enqueue js files.
+  */
+  public function enqueue_scripts() {
+      wp_enqueue_script( 'iframeResizer', plugins_url( '/js/iframeResizer.min.js', __FILE__ ));
+      wp_enqueue_script( 'sakura', plugins_url( '/js/sakura.js', __FILE__), array(), false, true);
+  }
   
   /**
    * The single instance of the class.

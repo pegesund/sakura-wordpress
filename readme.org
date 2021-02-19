@@ -32,6 +32,7 @@
     - [[#new-order][new order]]
     - [[#add_to_cart][add_to_cart]]
     - [[#payment-complete][payment complete]]
+  - [[#enqueue-js-files][enqueue js files]]
   - [[#singletone-of-main-class][singletone of Main class]]
 - [[#load-the-instance-of-main-class][Load the instance of main class]]
 - [[#a-widget-for-sakura-network][A Widget for Sakura network]]
@@ -53,6 +54,8 @@
   - [[#callback-for-widget-key][callback for widget key]]
   - [[#create-setting-page-if-admin][create setting page if admin]]
   - [[#how-to-retrive-setting-value][how to retrive setting value]]
+- [[#javascript-codes][Javascript codes]]
+  - [[#resize-sakura-widgets-height-to-fit-with-content][resize sakura widget's height to fit with content]]
 - [[#plugin-for-sakura-development-environment][Plugin for Sakura development environment]]
   - [[#headers-for-this-plugin][headers for this plugin]]
   - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
@@ -162,6 +165,7 @@ Please note that we add out =init= to the end of =init= action, to ensure that W
 	private function init_hooks() {
       add_action( 'init', array( $this, 'init' ), 999 );
       add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
+      add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
 
       // a uniform interface to woocommerce events.
       add_action( 'woocommerce_new_order', function ($order_id) {
@@ -363,6 +367,17 @@ Please note that we use sku as the unique id in the sakura side.
             do_action('sakura_record_activity', sprintf('notify sakura for payment complete: #%d', $order_id));
         }
 
+#+END_SRC
+
+** enqueue js files
+#+BEGIN_SRC php
+    /**
+    * enqueue js files.
+    */
+    public function enqueue_scripts() {
+        wp_enqueue_script( 'iframeResizer', plugins_url( '/js/iframeResizer.min.js', __FILE__ ));
+        wp_enqueue_script( 'sakura', plugins_url( '/js/sakura.js', __FILE__), array(), false, true);
+    }
 #+END_SRC
 
 ** singletone of Main class
@@ -664,6 +679,39 @@ if ( is_admin() )
  */
 #+END_SRC
 
+* Javascript codes
+:PROPERTIES:
+:header-args: :results silent :noweb yes :tangle ./src/js/sakura.js
+:END:
+** resize sakura widget's height to fit with content
+#+BEGIN_SRC js
+ iFrameResize({
+     log                     : false,                  // Disable console logging
+     maxHeight: 400,
+     resizedCallback         : function(messageData){ // Callback fn when resize is received
+	 console.log(
+	     '<b>Frame ID:</b> '    + messageData.iframe.id +
+	     ' <b>Height:</b> '     + messageData.height +
+	     ' <b>Width:</b> '      + messageData.width +
+	     ' <b>Event type:</b> ' + messageData.type
+	 );
+     },
+     messageCallback         : function(messageData){ // Callback fn when message is received
+	 console.log(
+	     '<b>Frame ID:</b> '    + messageData.iframe.id +
+	     ' <b>Message:</b> '    + messageData.message
+	 );
+	 alert(messageData.message);
+     },
+     closedCallback         : function(id){ // Callback fn when iFrame is closed
+	 console.log(
+	     '<b>IFrame (</b>'    + id +
+	     '<b>) removed from page.</b>'
+	 );
+     }
+ }, '.sakura');
+#+END_SRC
+
 * Plugin for Sakura development environment
 :PROPERTIES:
 :header-args: :tangle ./sakura_dev.php
@@ -741,7 +789,7 @@ do
     echo 'http://172.17.0.1' | sudo tee $wp/../../sakura_address.txt
 		echo cp to $wp/sakura_dev/
 		sudo cp sakura_dev.php $wp/sakura_dev/
-		sudo cp src/sakura.php $wp/sakura/
+		sudo cp -fr src/* $wp/sakura/
 done
 #+END_SRC
 Then you can active them in your wordpress admin page.
