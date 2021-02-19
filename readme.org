@@ -370,6 +370,7 @@ Please note that we use sku as the unique id in the sakura side.
 #+END_SRC
 
 ** enqueue js files
+Please note that we put =sakura.js= to end of the body, so it can apply resizer to iframes in the body.
 #+BEGIN_SRC php
     /**
     * enqueue js files.
