@@ -1,6 +1,6 @@
 iFrameResize({
     log                     : false,                  // Disable console logging
-    maxHeight: 400,
+    // maxHeight: 400,
     resizedCallback         : function(messageData){ // Callback fn when resize is received
 	// console.log(
 	//     '<b>Frame ID:</b> '    + messageData.iframe.id +
