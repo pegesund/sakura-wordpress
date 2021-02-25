@@ -316,7 +316,7 @@ class Sakura_widget extends WP_Widget {
   
       // This is where you run the code and display the output
       ?>
-      <iframe class="sakura" width="100%" height="433" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
+      <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
   <?php
       echo $args['after_widget'];
   }
