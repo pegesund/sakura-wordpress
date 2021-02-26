@@ -14,6 +14,7 @@
 - [[#preparation][preparation]]
   - [[#header][header]]
   - [[#prevent-data-leaks][Prevent Data Leaks]]
+  - [[#define-sakura_plugin_file][define SAKURA_PLUGIN_FILE]]
   - [[#check-if-woocommerce-is-active][Check if WooCommerce is active]]
 - [[#implementation-of-main-class][Implementation of main class]]
   - [[#class-definition][class definition]]
@@ -33,6 +34,8 @@
     - [[#add_to_cart][add_to_cart]]
     - [[#payment-complete][payment complete]]
   - [[#enqueue-js-files][enqueue js files]]
+  - [[#show-action-links-on-the-plugin-screen][Show action links on the plugin screen]]
+  - [[#define-constant-if-not-already-set][Define constant if not already set.]]
   - [[#singletone-of-main-class][singletone of Main class]]
 - [[#load-the-instance-of-main-class][Load the instance of main class]]
 - [[#a-widget-for-sakura-network][A Widget for Sakura network]]
@@ -104,6 +107,13 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 #+END_SRC
+** define SAKURA_PLUGIN_FILE
+#+BEGIN_SRC php
+if ( ! defined( 'SAKURA_PLUGIN_FILE' ) ) {
+	define( 'SAKURA_PLUGIN_FILE', __FILE__ );
+}
+#+END_SRC
+
 ** Check if WooCommerce is active
 #+BEGIN_SRC php
 /**
@@ -148,6 +158,7 @@ final class Sakura {
 	 * Sakura Constructor.
 	 */
 	public function __construct() {
+		$this->define( 'SAKURA_PLUGIN_BASENAME', plugin_basename( SAKURA_PLUGIN_FILE ) );
 		$this->init_hooks();
 	}
 
@@ -165,6 +176,7 @@ Please note that we add out =init= to the end of =init= action, to ensure that W
 	private function init_hooks() {
       add_action( 'init', array( $this, 'init' ), 999 );
       add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
+		  add_filter( 'plugin_action_links_' . SAKURA_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
       add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
 
       // a uniform interface to woocommerce events.
@@ -379,6 +391,41 @@ Please note that we put =sakura.js= to end of the body, so it can apply resizer 
         wp_enqueue_script( 'iframeResizer', plugins_url( '/js/iframeResizer.min.js', __FILE__ ));
         wp_enqueue_script( 'sakura', plugins_url( '/js/sakura.js', __FILE__), array(), false, true);
     }
+#+END_SRC
+
+** Show action links on the plugin screen
+#+BEGIN_SRC php
+	/**
+	 * Show action links on the plugin screen.
+	 *
+	 * @param mixed $links Plugin Action links.
+	 *
+	 * @return array
+	 */
+	public static function plugin_action_links( $links ) {
+		$action_links = array(
+			'settings' => '<a href="' . admin_url( 'admin.php?page=sakura-network' ) . '" aria-label="' . esc_attr__( 'View Sakura network settings', 'sakura' ) . '">' . esc_html__( 'Settings', 'sakura' ) . '</a>',
+		);
+
+		return array_merge( $action_links, $links );
+	}
+
+#+END_SRC
+
+** Define constant if not already set.
+#+BEGIN_SRC php
+	/**
+	 * Define constant if not already set.
+	 *
+	 * @param string      $name  Constant name.
+	 * @param string|bool $value Constant value.
+	 */
+	private function define( $name, $value ) {
+		if ( ! defined( $name ) ) {
+			define( $name, $value );
+		}
+	}
+
 #+END_SRC
 
 ** singletone of Main class

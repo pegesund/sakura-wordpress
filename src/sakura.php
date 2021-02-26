@@ -25,6 +25,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
+if ( ! defined( 'SAKURA_PLUGIN_FILE' ) ) {
+	define( 'SAKURA_PLUGIN_FILE', __FILE__ );
+}
+
 /**
  * Check if WooCommerce is active
  **/
@@ -52,6 +56,7 @@ final class Sakura {
    * Sakura Constructor.
    */
   public function __construct() {
+  	$this->define( 'SAKURA_PLUGIN_BASENAME', plugin_basename( SAKURA_PLUGIN_FILE ) );
   	$this->init_hooks();
   }
   
@@ -63,6 +68,7 @@ final class Sakura {
          private function init_hooks() {
        add_action( 'init', array( $this, 'init' ), 999 );
        add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
+  		 add_filter( 'plugin_action_links_' . SAKURA_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
        add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
   
        // a uniform interface to woocommerce events.
@@ -224,6 +230,33 @@ final class Sakura {
       wp_enqueue_script( 'iframeResizer', plugins_url( '/js/iframeResizer.min.js', __FILE__ ));
       wp_enqueue_script( 'sakura', plugins_url( '/js/sakura.js', __FILE__), array(), false, true);
   }
+  /**
+   * Show action links on the plugin screen.
+   *
+   * @param mixed $links Plugin Action links.
+   *
+   * @return array
+   */
+  public static function plugin_action_links( $links ) {
+  	$action_links = array(
+  		'settings' => '<a href="' . admin_url( 'admin.php?page=sakura-network' ) . '" aria-label="' . esc_attr__( 'View Sakura network settings', 'sakura' ) . '">' . esc_html__( 'Settings', 'sakura' ) . '</a>',
+  	);
+  
+  	return array_merge( $action_links, $links );
+  }
+  
+  /**
+   * Define constant if not already set.
+   *
+   * @param string      $name  Constant name.
+   * @param string|bool $value Constant value.
+   */
+  private function define( $name, $value ) {
+  	if ( ! defined( $name ) ) {
+  		define( $name, $value );
+  	}
+  }
+  
   
   /**
    * The single instance of the class.
