@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Sakura Network in WooCommerce
+ * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
  * Version: 1.0.0

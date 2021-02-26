@@ -70,6 +70,13 @@
   - [[#description][description]]
   - [[#installation][installation]]
   - [[#changelog][changelog]]
+- [[#build][Build]]
+  - [[#definition-1][definition]]
+  - [[#initialization][initialization]]
+  - [[#prepare-files][Prepare files]]
+  - [[#generating-zip-file][Generating zip file]]
+  - [[#move-zip-file-to-root-directory][move zip file to root directory]]
+  - [[#execute][execute]]
 
 * References
 - Wordpress document: [[https://developer.wordpress.org/plugins/][Plugin Handbook]]
@@ -81,7 +88,7 @@
 #+BEGIN_SRC php
 <?php
 /**
- * Plugin Name: Sakura Network in WooCommerce
+ * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
  * Version: 1.0.0
@@ -914,3 +921,56 @@ If you encounter issues with the shop/category pages after an update, flush the 
 
 ,* The first official release.
 #+END_SRC
+* Build
+:PROPERTIES:
+:literate-lang: sh
+:header-args: :noweb yes :tangle no :noweb-ref build-zip
+:END:
+** definition
+#+BEGIN_SRC sh
+
+PLUGIN_SLUG="sakura"
+PROJECT_PATH=$(pwd)
+BUILD_PATH="${PROJECT_PATH}/build"
+DEST_PATH="$BUILD_PATH/$PLUGIN_SLUG"
+
+#+END_SRC
+** initialization
+#+BEGIN_SRC sh
+echo "Generating build directory..."
+rm -rf "$BUILD_PATH"
+mkdir -p "$DEST_PATH"
+
+#+END_SRC
+** Prepare files
+#+BEGIN_SRC sh
+rsync -rc "$PROJECT_PATH/src/" "$DEST_PATH/" --delete --delete-excluded
+
+#+END_SRC
+
+** Generating zip file
+#+BEGIN_SRC sh
+echo "Generating zip file..."
+cd "$BUILD_PATH" || exit
+zip -q -r "${PLUGIN_SLUG}.zip" "$PLUGIN_SLUG/"
+
+#+END_SRC
+** move zip file to root directory
+#+BEGIN_SRC sh
+cd "$PROJECT_PATH" || exit
+mv "$BUILD_PATH/${PLUGIN_SLUG}.zip" "$PROJECT_PATH"
+echo "${PLUGIN_SLUG}.zip file generated!"
+
+echo "Build done!"
+
+#+END_SRC
+** execute
+#+BEGIN_SRC sh :tangle ./build-zip.sh :noweb yes :noweb-ref "" :shebang #!/bin/sh
+<<build-zip>>
+#+END_SRC
+
+#+RESULTS:
+| Generating | build | directory... |
+| Generating | zip   | file...      |
+| sakura.zip | file  | generated!   |
+| Build      | done! |              |
