@@ -1,6 +1,7 @@
 iFrameResize({
     log                     : false,                  // Disable console logging
     // maxHeight: 400,
+		checkOrigin: ["https://www.sakura.eco"],
     onResized         : function(messageData){ // Callback fn when resize is received
 	// console.log(
 	//     '<b>Frame ID:</b> '    + messageData.iframe.id +
