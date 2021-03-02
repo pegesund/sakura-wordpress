@@ -136,6 +136,9 @@ final class Sakura {
           if (isset($_GET["sakura_to"])) {
             $history = $history . "-" . rawurlencode($_GET["sakura_to"]);
           }
+          if (isset($_GET["sakura_network"])) {
+            $history = $history . "-" . rawurlencode($_GET["sakura_network"]);
+          }
           $this->do_store_sakura_history_in_cookie ($history);
       }
   }

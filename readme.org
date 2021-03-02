@@ -273,6 +273,9 @@ Please note that we have to [[https://stackoverflow.com/a/3230167][update cookie
             if (isset($_GET["sakura_to"])) {
               $history = $history . "-" . rawurlencode($_GET["sakura_to"]);
             }
+            if (isset($_GET["sakura_network"])) {
+              $history = $history . "-" . rawurlencode($_GET["sakura_network"]);
+            }
             $this->do_store_sakura_history_in_cookie ($history);
         }
     }
@@ -280,6 +283,7 @@ Please note that we have to [[https://stackoverflow.com/a/3230167][update cookie
 
 ** handle various events
 We will handle required WooCommerce events in action [[https://developer.wordpress.org/reference/hooks/shutdown/][shutdown]] so it will not block the render of a WooCommerce page.
+[[https://docs.woocommerce.com/document/managing-orders/#section-21][Managing Orders]].
 *** a class property to hold the current action name.
 #+BEGIN_SRC php :noweb-ref sakura-main-vars
    public $current_action = null;
