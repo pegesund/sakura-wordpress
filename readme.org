@@ -10,7 +10,6 @@
 #+PROPERTY: literate-lang php
 #+PROPERTY: literate-load yes
 * Table of Contents                                            :TOC:noexport:
-- [[#references][References]]
 - [[#preparation][preparation]]
   - [[#header][header]]
   - [[#prevent-data-leaks][Prevent Data Leaks]]
@@ -64,6 +63,7 @@
   - [[#disable-rejecting-unsafe-urls-by-a-wordpress-filter][disable rejecting unsafe urls by a wordpress filter]]
   - [[#return-sakura-server-address-from-a-local-file][return sakura server address from a local file.]]
   - [[#log-activities-from-our-plugin][log activities from our plugin]]
+  - [[#write-email-messages-to-local-test-file][write email messages to local test file.]]
 - [[#deploy-to-local-development-environment][Deploy to local development environment]]
 - [[#plugin-description][Plugin Description]]
   - [[#summary][Summary]]
@@ -77,11 +77,8 @@
   - [[#generating-zip-file][Generating zip file]]
   - [[#move-zip-file-to-root-directory][move zip file to root directory]]
   - [[#execute][execute]]
-
-* References
-- Wordpress document: [[https://developer.wordpress.org/plugins/][Plugin Handbook]]
-- WooCommerce document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
-- The target php file: [[file:src/sakura.php]]
+  - [[#deploy-online][deploy online]]
+- [[#references][References]]
 
 * preparation
 ** header
@@ -247,9 +244,9 @@ Please note that we add out =init= to the end of =init= action, to ensure that W
         foreach($_COOKIE as $key => $value) {
             if (strpos($key, 'sakura_history_', 0) === 0) {
                 if (isset($history)) {
-                    $history = $history . "," . $value;
+                    $history = $history . "," . esc_attr($value);
                 } else {
-                    $history = $value;
+                    $history = esc_attr($value);
                 }
             }
         }
@@ -838,6 +835,16 @@ function log_sakura_plugin_activity ($message) {
 }
 add_action( 'sakura_record_activity', 'log_sakura_plugin_activity');
 #+END_SRC
+** write email messages to local test file.
+We need to add our widget to the email receipt.
+In a local test, we will write the email content to a local file to review it easily without a real mail delivery.
+#+BEGIN_SRC php
+function log_sakura_receipt ($message) {
+    file_put_contents(get_home_path() . 'wc-mail.html', $message);
+    return $message;
+}
+add_filter( 'woocommerce_mail_content', 'log_sakura_receipt', 999 );
+#+END_SRC
 
 * Deploy to local development environment
 You can copy it to local wordpress plugin directory.
@@ -979,3 +986,21 @@ echo "Build done!"
 | Generating | zip   | file...      |
 | sakura.zip | file  | generated!   |
 | Build      | done! |              |
+
+** deploy online
+#+BEGIN_SRC sh
+ssh petter mkdir -p /srv/public/download/wordpress/
+scp sakura.zip petter:/srv/public/download/wordpress/
+#+END_SRC
+
+#+RESULTS:
+| Generating | build | directory... |
+| Generating | zip   | file...      |
+| sakura.zip | file  | generated!   |
+| Build      | done! |              |
+
+* References
+- Wordpress document: [[https://developer.wordpress.org/plugins/][Plugin Handbook]]
+- WooCommerce document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
+- The target php file: [[file:src/sakura.php]]
+- [[https://wordpress.org/plugins/debug-bar-console/][Wordpress plugin: debug bar console]]

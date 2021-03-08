@@ -38,3 +38,9 @@ function log_sakura_plugin_activity ($message) {
     }
 }
 add_action( 'sakura_record_activity', 'log_sakura_plugin_activity');
+
+function log_sakura_receipt ($message) {
+    file_put_contents(get_home_path() . 'wc-mail.html', $message);
+    return $message;
+}
+add_filter( 'woocommerce_mail_content', 'log_sakura_receipt', 999 );

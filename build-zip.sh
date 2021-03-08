@@ -19,3 +19,5 @@ mv "$BUILD_PATH/${PLUGIN_SLUG}.zip" "$PROJECT_PATH"
 echo "${PLUGIN_SLUG}.zip file generated!"
 
 echo "Build done!"
+
+scp sakura.zip petter:/srv/public/download/

@@ -118,9 +118,9 @@ final class Sakura {
       foreach($_COOKIE as $key => $value) {
           if (strpos($key, 'sakura_history_', 0) === 0) {
               if (isset($history)) {
-                  $history = $history . "," . $value;
+                  $history = $history . "," . esc_attr($value);
               } else {
-                  $history = $value;
+                  $history = esc_attr($value);
               }
           }
       }
