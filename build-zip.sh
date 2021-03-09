@@ -20,4 +20,5 @@ echo "${PLUGIN_SLUG}.zip file generated!"
 
 echo "Build done!"
 
-scp sakura.zip petter:/srv/public/download/
+ssh petter mkdir -p /srv/public/download/wordpress/
+scp sakura.zip petter:/srv/public/download/wordpress/

@@ -244,9 +244,9 @@ Please note that we add out =init= to the end of =init= action, to ensure that W
         foreach($_COOKIE as $key => $value) {
             if (strpos($key, 'sakura_history_', 0) === 0) {
                 if (isset($history)) {
-                    $history = $history . "," . esc_attr($value);
+                    $history = $history . "," . sanitize_text_field($value);
                 } else {
-                    $history = esc_attr($value);
+                    $history = sanitize_text_field($value);
                 }
             }
         }
@@ -989,15 +989,11 @@ echo "Build done!"
 
 ** deploy online
 #+BEGIN_SRC sh
-ssh petter mkdir -p /srv/public/download/wordpress/
+# ssh petter mkdir -p /srv/public/download/wordpress/
 scp sakura.zip petter:/srv/public/download/wordpress/
 #+END_SRC
 
 #+RESULTS:
-| Generating | build | directory... |
-| Generating | zip   | file...      |
-| sakura.zip | file  | generated!   |
-| Build      | done! |              |
 
 * References
 - Wordpress document: [[https://developer.wordpress.org/plugins/][Plugin Handbook]]
