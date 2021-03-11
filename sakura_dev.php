@@ -15,6 +15,7 @@ Author URI: https://www.sakura.eco/
 add_filter( 'http_request_args', function ( $args ) {
 
     $args['reject_unsafe_urls'] = false;
+    $args['sslverify'] = false;
 
     return $args;
 }, 999 );

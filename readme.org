@@ -78,7 +78,9 @@
   - [[#move-zip-file-to-root-directory][move zip file to root directory]]
   - [[#execute][execute]]
   - [[#deploy-online][deploy online]]
-- [[#references][References]]
+- [[#upload-to-wordpressorg-svn-repository][Upload to WordPress.org svn repository]]
+  - [[#references][References]]
+- [[#references-1][References]]
 
 * preparation
 ** header
@@ -798,13 +800,14 @@ Author URI: https://www.sakura.eco/
 #+END_SRC
 
 ** disable rejecting unsafe urls by a wordpress filter
-This idea comes from [[https://dev.to/manuelmolina97/handling-multiple-environments-in-raw-php-3788][this link]].
+This idea comes from [[https://dev.to/manuelmolina97/handling-multiple-environments-in-raw-php-3788][this link]] and [[https://wordpress.org/support/topic/wp-http-error-curl-error-60-ssl-certificate-problem-self-signed-certificate/][here]].
 As our local development use a http request or a self signed https cert, we have to disable the rejecting of unsafe urls.
 Otherwise =wp_safe_remote_request= will fail.
 #+BEGIN_SRC php
     add_filter( 'http_request_args', function ( $args ) {
 
         $args['reject_unsafe_urls'] = false;
+        $args['sslverify'] = false;
 
         return $args;
     }, 999 );
@@ -995,6 +998,13 @@ scp sakura.zip petter:/srv/public/download/wordpress/
 
 #+RESULTS:
 
+* Upload to WordPress.org svn repository
+** References
+- [[https://plugins.svn.wordpress.org/sakura-network][SVN URL]]
+- [[https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/][Using Subversion with the WordPress Plugin Directory]]
+- [[https://developer.wordpress.org/plugins/wordpress-org/plugin-developer-faq/][FAQ]]
+- [[https://wordpress.org/plugins/developers/#readme][WordPress Plugin Directory readme.txt standard:]]
+- [[https://wordpress.org/plugins/developers/readme-validator/][A readme.txt validator]]
 * References
 - Wordpress document: [[https://developer.wordpress.org/plugins/][Plugin Handbook]]
 - WooCommerce document: [[https://docs.woocommerce.com/document/create-a-plugin/][create a plugin]]
