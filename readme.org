@@ -1128,7 +1128,11 @@ add_filter( 'woocommerce_mail_content', 'log_sakura_receipt', 999 );
 :END:
 ** install database
 #+BEGIN_SRC sh
+mkdir -p /data/sakura/shops/shop1db
+cd /data/sakura/shops/shop1db
 docker run -e MYSQL_ROOT_PASSWORD=shop1_WS -e MYSQL_DATABASE=wordpress --name shop1db -v "$PWD/database":/var/lib/mysql -d mariadb:latest
+mkdir -p /data/sakura/shops/shop2db
+cd /data/sakura/shops/shop2db
 docker run -e MYSQL_ROOT_PASSWORD=shop2_WS -e MYSQL_DATABASE=wordpress --name shop2db -v "$PWD/database":/var/lib/mysql -d mariadb:latest
 #+END_SRC
 ** install wordpress
