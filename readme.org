@@ -74,6 +74,11 @@
   - [[#log-activities-from-our-plugin][log activities from our plugin]]
   - [[#write-email-messages-to-local-test-file][write email messages to local test file.]]
 - [[#deploy-to-local-development-environment][Deploy to local development environment]]
+  - [[#install-database][install database]]
+  - [[#install-wordpress][install wordpress]]
+  - [[#generate-certs][generate certs]]
+  - [[#setup-nginx-for-shop1--shop2][setup nginx for shop1 & shop2]]
+  - [[#install-plugin][install plugin]]
 - [[#plugin-description][Plugin Description]]
   - [[#summary][Summary]]
   - [[#description][description]]
@@ -1118,22 +1123,116 @@ add_filter( 'woocommerce_mail_content', 'log_sakura_receipt', 999 );
 #+END_SRC
 
 * Deploy to local development environment
+:PROPERTIES:
+:header-args: :tangle no
+:END:
+** install database
+#+BEGIN_SRC sh
+docker run -e MYSQL_ROOT_PASSWORD=shop1_WS -e MYSQL_DATABASE=wordpress --name shop1db -v "$PWD/database":/var/lib/mysql -d mariadb:latest
+docker run -e MYSQL_ROOT_PASSWORD=shop2_WS -e MYSQL_DATABASE=wordpress --name shop2db -v "$PWD/database":/var/lib/mysql -d mariadb:latest
+#+END_SRC
+** install wordpress
+#+BEGIN_SRC php
+mkdir -p /data/sakura/shops/shop1
+cd /data/sakura/shops/shop1
+docker run -e WORDPRESS_DB_PASSWORD=shop1_WS --name shop1 --link shop1db:mysql -p 127.0.0.1:6100:80 -v "$PWD/html":/var/www/html -d wordpress
+mkdir -p /data/sakura/shops/shop2
+cd /data/sakura/shops/shop2
+docker run -e WORDPRESS_DB_PASSWORD=shop2_WS --name shop2 --link shop2db:mysql -p 127.0.0.1:6200:80 -v "$PWD/html":/var/www/html -d wordpress
+#+END_SRC
+
+** generate certs
+Write a config file for cert
+#+BEGIN_SRC conf
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+[req_distinguished_name]
+C = CN
+ST = ZJ
+L = HZ
+O = Sakura
+OU = Sakura
+CN = Sakura
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = shop1.localhost
+DNS.2 = shop2.localhost
+#+END_SRC
+Then run the following command:
+#+BEGIN_SRC sh
+openssl req -x509 -nodes -days 1024 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config ssl.conf -extensions 'v3_req'
+certutil -d sql:$HOME/.pki/nssdb -A -t "CT,c,c" -n "localhost" -i localhost.crt
+#+END_SRC
+
+** setup nginx for shop1 & shop2
+For example
+#+BEGIN_SRC conf
+upstream shop1_localhost_server {
+    server 127.0.0.1:6100;
+}
+
+server {
+	listen 443 ssl;
+        server_name shop1.localhost;
+	ssl_certificate /data/sakura/shops/shop1/local_ssl/localhost.crt;
+        ssl_certificate_key /data/sakura/shops/shop1/local_ssl/localhost.key;
+        ssl_protocols TLSv1.2 TLSv1.1 TLSv1;
+    location / {
+      access_log /data/sakura/shops/shop1/html/access.log;
+      error_log /data/sakura/shops/shop1/html/error.log;
+      proxy_pass http://shop1_localhost_server;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    error_page 404 /404.html;
+        location = /40x.html {
+    }
+
+    error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+    }
+}
+server {
+    listen 80;
+    server_name shop1.localhost;
+    location / {
+      access_log /data/sakura/shops/shop1/html/access.log;
+      error_log /data/sakura/shops/shop1/html/error.log;
+      proxy_pass http://shop1_localhost_server;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
+
+#+END_SRC
+
+** install plugin
 You can copy it to local WordPress plugin directory.
 
 For example:
-#+BEGIN_SRC sh :tangle no
+#+BEGIN_SRC sh
 for shop in shop1 shop2
 do
 		wp=/data/sakura/shops/$shop/html/wp-content/plugins
 		echo setup sakura in $wp
 		sudo mkdir -p $wp/sakura
 		sudo mkdir -p $wp/sakura_dev
-    echo 'http://172.17.0.1' | sudo tee $wp/../../sakura_address.txt
+    echo 'https://sakura.localhost' | sudo tee $wp/../../sakura_address.txt
 		echo cp to $wp/sakura_dev/
 		sudo cp sakura_dev.php $wp/sakura_dev/
 		sudo cp -fr src/* $wp/sakura/
 done
 #+END_SRC
+=sakura.localhost= will point to localhost and has trusted self signed certs.
+
 Then you can active them in your WordPress admin page.
 
 * Plugin Description
@@ -1240,8 +1339,9 @@ mkdir -p "$DEST_PATH"
 #+END_SRC
 ** Prepare files
 #+BEGIN_SRC sh
+yarn install
+yarn build
 rsync -rc "$PROJECT_PATH/src/" "$DEST_PATH/" --delete --delete-excluded
-
 #+END_SRC
 
 ** Generating zip file
