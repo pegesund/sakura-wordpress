@@ -4,20 +4,28 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Sakura facilitates building curated digital networks of cooperation and we also help members connect to established networks in Sakura.
+Sakura networks for Woocommerce sites
 
 == Description ==
 
-**WE FACILITATE DIGITAL NETWORKING AND CO-OPERATION**
+- **Register** to become a member or create your own network in [Sakura.eco](https://www.sakura.eco).
+- **Install** the Sakura networks plugin and add the discovery on your website
 
-Our concept is very simple: If players team up and shuffle traffic between each other in a defined network they will gain more traffic all together.
-Cooperating in networks will increase exposure, traffic and sales for every member..
-Sakura facilitates building curated digital networks of cooperation and we also help members connect to established networks in Sakura.
-Sakuras value proposition is built on Nordic Democratic values: we share, we work together, we cooperate. We believe the future is all about co-opetition.
+This is one of our networks discovery in [Sakura.eco](https://www.sakura.eco).
+
+They share their traffic within their network in this discovery.
+
+You can discover networks in [Sakura.eco](https://www.sakura.eco) and request to become a member.
+
+Dashboard with statistics making it easy to track traffic and orders deriving from participating in Networks.
+
+You decide which products you want to publish in the discovery and you can track their views and orders from network.
+
+[Sakura.eco](https://www.sakura.eco) has their own marketplace, where all our members can be available, it is optional to join our main Sakura network.
 
 == Installation ==
 
@@ -43,6 +51,12 @@ Automatic updates should work smoothly, but we still recommend you back up your 
 If you encounter issues with the shop/category pages after an update, flush the permalinks by going to WordPress > Settings > Permalinks and hitting “Save.” That should return things to normal.
 
 == Changelog ==
+
+= 1.0.1 - 2021-03-12 =
+
+**Sakura network**
+
+* Insert Sakura network in an individual post or page as a block.
 
 = 1.0.0 - 2021-02-26 =
 

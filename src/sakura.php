@@ -3,7 +3,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -67,6 +67,7 @@ final class Sakura {
   	*/
          private function init_hooks() {
        add_action( 'init', array( $this, 'init' ), 999 );
+       add_action( 'init', array( $this, 'init_block' ));
        add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
   		 add_filter( 'plugin_action_links_' . SAKURA_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
        add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
@@ -286,6 +287,88 @@ final class Sakura {
   	return self::$_instance;
   }
   
+  /**
+  * Registers all block assets so that they can be enqueued through the block editor
+  * in the corresponding context.
+  */
+  public function init_block() {
+      $dir = plugin_dir_path( SAKURA_PLUGIN_FILE );
+  
+      $script_asset_path = "$dir/build/index.asset.php";
+      $index_js     = 'build/index.js';
+      $script_asset = require( $script_asset_path );
+      wp_register_script(
+          'sakura-network-block-editor',
+          plugins_url( $index_js, SAKURA_PLUGIN_FILE),
+          $script_asset['dependencies'],
+          $script_asset['version']
+      );
+      wp_set_script_translations( 'sakura-network-block-editor', 'sakura-network' );
+  
+      $editor_css = 'build/index.css';
+      wp_register_style(
+          'sakura-network-block-editor',
+          plugins_url( $editor_css, __FILE__ ),
+          array(),
+          filemtime( "$dir/$editor_css" )
+      );
+  
+      $style_css = 'build/style-index.css';
+      wp_register_style(
+          'sakura-network-block',
+          plugins_url( $style_css, __FILE__ ),
+          array(),
+          filemtime( "$dir/$style_css" )
+      );
+  
+      register_block_type(
+          'sakura-network/sakura-network',
+          array(
+              'render_callback' => array( $this, 'block_render_callback' ),
+              'editor_script' => 'sakura-network-block-editor',
+              'attributes'      => [
+                  'template' => [
+                  'default' => 'Default',
+                  'type'    => 'string'
+              ]],
+              'editor_style'  => 'sakura-network-block-editor',
+              'style'         => 'sakura-network-block'
+          )
+      );
+  }
+  /**
+  * The render callback for block Sakura network.
+  */
+  public function block_render_callback($attributes, $content) {
+      $template = $attributes['template'];
+      do_action('sakura_record_activity', sprintf('block_render_callback, template:%s', $template));
+      do_action('sakura_record_activity', sprintf('block_render_callback, content:%s', $content));
+      $query_args = array();
+  
+      $query_args['template'] = $template;
+  
+      $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+  
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+      $url = $sakura_server . '/widget/' . $sakura_widget_key;
+  
+      $history = SC()->sakura_history_in_cookie();
+      if (isset($history)) {
+          $query_args['history'] = $history;
+      }
+      $product = wc_get_product();
+      if ($product) {
+          $query_args['id'] = $product->get_id();
+          $query_args['sku'] = $product->get_sku();
+      }
+      if (sizeof($query_args) > 0) {
+          $url = $url . '?' . http_build_query($query_args);
+      }
+  
+      return '<iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="'
+              . $url . '" title="Sakura Transparency Widget"></iframe>';
+  }
 }
 
 /**
@@ -317,15 +400,16 @@ class Sakura_widget extends WP_Widget {
     }
   // Creating widget front-end
   public function widget( $args, $instance ) {
-  		global $post;
-      if ( isset( $instance[ 'title' ] ) ) {
-  
-          $title = $instance['title'];
-      } else {
-          $title = __('Sakura Network', 'wpb_widget_domain');
-      }
-  
       $query_args = array();
+  
+      if ( isset( $instance[ 'template' ] ) ) {
+  
+          $template = $instance['template'];
+      } else {
+          $template = 'Default';
+      }
+      $query_args['template'] = $template;
+  
       $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
       $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
   
@@ -347,8 +431,8 @@ class Sakura_widget extends WP_Widget {
   
       // before and after widget arguments are defined by themes
       echo $args['before_widget'];
-      if ( ! empty( $title ) )
-          echo $args['before_title'] . $title . $args['after_title'];
+      // if ( ! empty( $title ) )
+      //     echo $args['before_title'] . $title . $args['after_title'];
   
       // This is where you run the code and display the output
       ?>
@@ -359,26 +443,43 @@ class Sakura_widget extends WP_Widget {
   
   // Widget Backend
       public function form( $instance ) {
-          if ( isset( $instance[ 'title' ] ) ) {
-              $title = $instance['title'];
+          if ( isset( $instance[ 'template' ] ) ) {
+              $template = $instance['template'];
           } else {
-              $title = __('Sakura Network', 'wpb_widget_domain' );
+              $template = 'Default';
           }
-          $url = ! empty( $instance['url'] ) ? $instance['url'] : esc_html__( 'Please input the widget URL', 'text_domain' );
-          // Widget admin form
-  
+          $sakura_network_options = get_option('sakura_network_option'); // array of all options
+          $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // sakura widget key
+          if ( !isset ($sakura_widget_key)) {
+              ?>
+              <p>
+              please setup widget key via <a href="/wp-admin/admin.php?page=sakura-network">sakura network menu</a>.
+              </p>
+              <?php
+          }
   
           ?>
           <p>
-           Please setup this widget via <a href="/wp-admin/admin.php?page=sakura-network">Sakura Network menu</a>.
+          <label for="<?php echo $this->get_field_id('text'); ?>">Template:
+          <select class='widefat' id="<?php echo $this->get_field_id('template'); ?>"
+                  name="<?php echo $this->get_field_name('template'); ?>" type="text">
+            <option value='Default'<?php echo ($template=='Default')?'selected':''; ?>>
+              Default
+            </option>
+            <option value='Confettibird'<?php echo ($template=='Confettibird')?'selected':''; ?>>
+              Confettibird
+            </option>
+          </select>
+        </label>
           </p>
   <?php
+  
+          // widget admin form
       }
   // Updating widget replacing old instances with new
       public function update( $new_instance, $old_instance ) {
           $instance = array();
-          $instance['url'] = ( ! empty( $new_instance['url'] ) ) ? strip_tags( $new_instance['url'] ) : '';
-          $instance['title'] = ( ! empty( $new_instance['title'] ) ) ? strip_tags( $new_instance['title'] ) : '';
+          $instance['template'] = ( ! empty( $new_instance['template'] ) ) ? strip_tags( $new_instance['template'] ) : '';
           return $instance;
       }
   
