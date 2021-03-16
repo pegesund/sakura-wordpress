@@ -71,6 +71,7 @@ final class Sakura {
        add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
   		 add_filter( 'plugin_action_links_' . SAKURA_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
        add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
+       add_action('enqueue_block_editor_assets', array( $this, 'setup_block_options'), 0);
   
        // a uniform interface to woocommerce events.
        add_action( 'woocommerce_new_order', function ($order_id) {
@@ -228,6 +229,45 @@ final class Sakura {
       }
   
   /**
+  * Initialize networks data for current site.
+  */
+  public function setup_block_options() {
+      do_action('sakura_record_activity', 'setup_block_options');
+      // wp_enqueue_script( 'sakura-network-data');
+      wp_add_inline_script('wp-editor',
+                           sprintf('var _sakura_networks = %s;',
+                                   wp_json_encode($this->networks())));
+  }
+  /**
+  * Get a list of owned Sakura networks.
+  */
+  public function networks() {
+      $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+      if (!isset ($sakura_widget_key)) {
+          return (object)array('status' => 'error',
+                               'message' => 'Please setup widgetKey for Sakura network.');
+      }
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+      $http_args = array(
+          'method'      => 'GET',
+          'timeout'     => MINUTE_IN_SECONDS,
+          'redirection' => 0,
+          'httpversion' => '1.0',
+          'blocking'    => true,
+          'user-agent'  => sprintf('WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version']),
+          'headers'     => array(
+              'Content-Type' => 'application/json',
+          ));
+      $response = wp_safe_remote_request(sprintf('%s/api/widget/networks/%s', $sakura_server, $sakura_widget_key), $http_args);
+      do_action('sakura_record_activity', $response);
+      if ($response instanceof WP_Error) {
+          return (object)array('status' => 'error',
+                               'message' => 'Failed to get networks');
+      }
+      return json_decode($response['body']);
+  }
+  /**
   * enqueue js files.
   */
   public function enqueue_scripts() {
@@ -327,7 +367,7 @@ final class Sakura {
               'render_callback' => array( $this, 'block_render_callback' ),
               'editor_script' => 'sakura-network-block-editor',
               'attributes'      => [
-                  'template' => [
+                  'network' => [
                   'default' => 'Default',
                   'type'    => 'string'
               ]],
@@ -340,12 +380,14 @@ final class Sakura {
   * The render callback for block Sakura network.
   */
   public function block_render_callback($attributes, $content) {
-      $template = $attributes['template'];
-      do_action('sakura_record_activity', sprintf('block_render_callback, template:%s', $template));
+      $network = $attributes['network'];
+      do_action('sakura_record_activity', sprintf('block_render_callback, network:%s', $network));
       do_action('sakura_record_activity', sprintf('block_render_callback, content:%s', $content));
       $query_args = array();
   
-      $query_args['template'] = $template;
+      if ($network != 0) {
+          $query_args['network'] = $network;
+      }
   
       $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
       $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
@@ -402,13 +444,9 @@ class Sakura_widget extends WP_Widget {
   public function widget( $args, $instance ) {
       $query_args = array();
   
-      if ( isset( $instance[ 'template' ] ) ) {
-  
-          $template = $instance['template'];
-      } else {
-          $template = 'Default';
+      if ( !empty( $instance[ 'network' ] ) ) {
+          $query_args['network'] = $instance['network'];
       }
-      $query_args['template'] = $template;
   
       $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
       $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
@@ -434,52 +472,66 @@ class Sakura_widget extends WP_Widget {
       // if ( ! empty( $title ) )
       //     echo $args['before_title'] . $title . $args['after_title'];
   
-      // This is where you run the code and display the output
-      ?>
-      <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
-  <?php
-      echo $args['after_widget'];
-  }
+          // This is where you run the code and display the output
+          ?>
+          <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
+      <?php
+          echo $args['after_widget'];
+      }
   
   // Widget Backend
-      public function form( $instance ) {
-          if ( isset( $instance[ 'template' ] ) ) {
-              $template = $instance['template'];
-          } else {
-              $template = 'Default';
-          }
-          $sakura_network_options = get_option('sakura_network_option'); // array of all options
-          $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // sakura widget key
-          if ( !isset ($sakura_widget_key)) {
-              ?>
-              <p>
-              please setup widget key via <a href="/wp-admin/admin.php?page=sakura-network">sakura network menu</a>.
-              </p>
-              <?php
-          }
-  
-          ?>
-          <p>
-          <label for="<?php echo $this->get_field_id('text'); ?>">Template:
-          <select class='widefat' id="<?php echo $this->get_field_id('template'); ?>"
-                  name="<?php echo $this->get_field_name('template'); ?>" type="text">
-            <option value='Default'<?php echo ($template=='Default')?'selected':''; ?>>
-              Default
-            </option>
-            <option value='Confettibird'<?php echo ($template=='Confettibird')?'selected':''; ?>>
-              Confettibird
-            </option>
-          </select>
-        </label>
-          </p>
-  <?php
-  
-          // widget admin form
+  public function form( $instance ) {
+      if ( !empty( $instance[ 'network' ] ) ) {
+          $network = (int)$instance['network'];
+      } else {
+          $network = 0;
       }
+      $sakura_network_options = get_option('sakura_network_option'); // array of all options
+  $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // sakura widget key
+  if ( !isset ($sakura_widget_key)) {
+      ?>
+      <p>
+      please setup widget key via <a href="/wp-admin/admin.php?page=sakura-network">sakura network menu</a>.
+      </p>
+      <?php
+  }
+  $networks = SC()->networks();
+  if ($networks->{'status'} != 'success') {
+      echo '<h3>';
+      echo $networks->{'message'};
+      echo '</h3>';
+  } else {
+      ?>
+      <p>
+      <label for="<?php echo $this->get_field_id('text'); ?>">Network:
+      <select class='widefat' id="<?php echo $this->get_field_id('network'); ?>"
+                  name="<?php echo $this->get_field_name('network'); ?>" type="text">
+          <option value=''<?php echo ($network==0)?'selected':''; ?>>
+              All networks
+          </option>
+          <?php
+              foreach( $networks->{'networks'} as $network_obj ) {
+                $id = $network_obj->{'id'};
+                $name = $network_obj->{'name'}->{'en'};
+                ?>
+                  <option value='<?php echo $id ?>'<?php echo ($network==$id)?'selected':''; ?>>
+                      <?php echo $name ?>
+                  </option>
+                <?php
+              }
+          ?>
+          </select>
+      </label>
+          </p>
+      <?php
+      }
+  
+      // widget admin form
+  }
   // Updating widget replacing old instances with new
       public function update( $new_instance, $old_instance ) {
           $instance = array();
-          $instance['template'] = ( ! empty( $new_instance['template'] ) ) ? strip_tags( $new_instance['template'] ) : '';
+          $instance['network'] = ( ! empty( $new_instance['network'] ) ) ? strip_tags( $new_instance['network'] ) : '';
           return $instance;
       }
   

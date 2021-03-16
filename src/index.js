@@ -32,6 +32,27 @@ import './editor.scss';
  */
 import { useBlockProps } from '@wordpress/block-editor';
 
+function Edit( props ) {
+		if (_sakura_networks.status != "success") {
+				return <h3> Failed to get your networks list from Sakura Server! </h3>
+		}
+
+		var networks_options =
+				[{value: 0, label: 'All'}].concat(
+						_sakura_networks.networks.map( network =>
+								{ var o = new Object();
+									o.value = network.id;
+									o.label = network.name.en;
+									return o;}));
+
+				return		<SelectControl
+				label={ __( 'Select target network:' ) }
+				value={ props.attributes.network }
+				onChange={( network ) => { props.setAttributes ({network: network })}}
+				options={ networks_options }
+/>
+    }
+
 /**
  * Every block starts by registering a new block type definition.
  *
@@ -78,24 +99,12 @@ registerBlockType( 'sakura-network/sakura-network', {
 		// 		html: false,
 		// },
 		attributes: {
-				template: {
+				network: {
 						type: 'string',
 						default: 'Default',
 				},
 		},
-		edit: function( props ) {
-				// return "<div>Sakrua Network</div>";
-				return		<SelectControl
-				label={ __( 'Select widget template:' ) }
-				value={ props.attributes.template }
-				onChange={( template ) => { props.setAttributes ({template: template })}}
-				options={ [
-						// { value: null, label: 'Select a User', disabled: true },
-						{ value: 'Default', label: 'Default' },
-						{ value: 'Confettibird', label: 'Confettibird' },
-				] }
-/>
-    },
+		edit: Edit,
 
 		save: function ( props ) {
 	return null;

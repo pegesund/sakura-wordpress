@@ -32,6 +32,8 @@
     - [[#new-order][new order]]
     - [[#add_to_cart][add_to_cart]]
     - [[#payment-complete][payment complete]]
+  - [[#setup_block_options-in-js-side][setup_block_options in JS side]]
+  - [[#get-owned-sakura-networks-based-on-sakura-widget-key][get owned Sakura networks based on Sakura widget key]]
   - [[#enqueue-js-files][enqueue js files]]
   - [[#show-action-links-on-the-plugin-screen][Show action links on the plugin screen]]
   - [[#define-constant-if-not-already-set][Define constant if not already set.]]
@@ -66,6 +68,7 @@
   - [[#scss-style-for-front][scss style for front]]
   - [[#javascript-for-the-block][Javascript for the block]]
     - [[#import-dependencies][import dependencies]]
+    - [[#edit-function][edit function]]
     - [[#register-block][register block]]
 - [[#plugin-for-sakura-development-environment][Plugin for Sakura development environment]]
   - [[#headers-for-this-plugin][headers for this plugin]]
@@ -203,6 +206,7 @@ Please note that we add out =init= to the end of =init= action, to ensure that W
       add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
 		  add_filter( 'plugin_action_links_' . SAKURA_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
       add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
+      add_action('enqueue_block_editor_assets', array( $this, 'setup_block_options'), 0);
 
       // a uniform interface to woocommerce events.
       add_action( 'woocommerce_new_order', function ($order_id) {
@@ -410,6 +414,53 @@ Please note that we use =SKU= as the unique id in the Sakura side.
 
 #+END_SRC
 
+** setup_block_options in JS side
+#+BEGIN_SRC php
+    /**
+    * Initialize networks data for current site.
+    */
+    public function setup_block_options() {
+        do_action('sakura_record_activity', 'setup_block_options');
+        // wp_enqueue_script( 'sakura-network-data');
+        wp_add_inline_script('wp-editor',
+                             sprintf('var _sakura_networks = %s;',
+                                     wp_json_encode($this->networks())));
+    }
+#+end_SRC
+
+** get owned Sakura networks based on Sakura widget key
+#+BEGIN_SRC php
+    /**
+    * Get a list of owned Sakura networks.
+    */
+    public function networks() {
+        $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+        $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+        if (!isset ($sakura_widget_key)) {
+            return (object)array('status' => 'error',
+                                 'message' => 'Please setup widgetKey for Sakura network.');
+        }
+        $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+        $http_args = array(
+            'method'      => 'GET',
+            'timeout'     => MINUTE_IN_SECONDS,
+            'redirection' => 0,
+            'httpversion' => '1.0',
+            'blocking'    => true,
+            'user-agent'  => sprintf('WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version']),
+            'headers'     => array(
+                'Content-Type' => 'application/json',
+            ));
+        $response = wp_safe_remote_request(sprintf('%s/api/widget/networks/%s', $sakura_server, $sakura_widget_key), $http_args);
+        do_action('sakura_record_activity', $response);
+        if ($response instanceof WP_Error) {
+            return (object)array('status' => 'error',
+                                 'message' => 'Failed to get networks');
+        }
+        return json_decode($response['body']);
+    }
+#+END_SRC
+
 ** enqueue js files
 Please note that we put =sakura.js= to end of the body, so it can apply resizer to iframes in the body.
 #+BEGIN_SRC php
@@ -544,13 +595,9 @@ It is an easy solution for now, and we can update it later if the URL size is to
 public function widget( $args, $instance ) {
     $query_args = array();
 
-    if ( isset( $instance[ 'template' ] ) ) {
-
-        $template = $instance['template'];
-    } else {
-        $template = 'Default';
+    if ( !empty( $instance[ 'network' ] ) ) {
+        $query_args['network'] = $instance['network'];
     }
-    $query_args['template'] = $template;
 
     $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
     $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
@@ -576,14 +623,14 @@ public function widget( $args, $instance ) {
     // if ( ! empty( $title ) )
     //     echo $args['before_title'] . $title . $args['after_title'];
 
-    // This is where you run the code and display the output
-    ?>
-    <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
-<?php
-    echo $args['after_widget'];
-}
+        // This is where you run the code and display the output
+        ?>
+        <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
+    <?php
+        echo $args['after_widget'];
+    }
 
-#+END_SRC
+    #+END_SRC
 ** form
 This part of the code is where we create the form with widget options for backend.
 
@@ -591,38 +638,52 @@ We can setup widget URL by wordpress's [[https://developer.wordpress.org/referen
 
 The idea of select box is from [[https://wp-dreams.com/articles/2014/03/wordpress-widget-select-box/][WordPress – Widget select box]].
 #+BEGIN_SRC php
-// Widget Backend
+    // Widget Backend
     public function form( $instance ) {
-        if ( isset( $instance[ 'template' ] ) ) {
-            $template = $instance['template'];
+        if ( !empty( $instance[ 'network' ] ) ) {
+            $network = (int)$instance['network'];
         } else {
-            $template = 'Default';
+            $network = 0;
         }
         $sakura_network_options = get_option('sakura_network_option'); // array of all options
-        $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // sakura widget key
-        if ( !isset ($sakura_widget_key)) {
-            ?>
-            <p>
-            please setup widget key via <a href="/wp-admin/admin.php?page=sakura-network">sakura network menu</a>.
-            </p>
-            <?php
-        }
-
+    $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // sakura widget key
+    if ( !isset ($sakura_widget_key)) {
         ?>
         <p>
-        <label for="<?php echo $this->get_field_id('text'); ?>">Template:
-        <select class='widefat' id="<?php echo $this->get_field_id('template'); ?>"
-                name="<?php echo $this->get_field_name('template'); ?>" type="text">
-          <option value='Default'<?php echo ($template=='Default')?'selected':''; ?>>
-            Default
-          </option>
-          <option value='Confettibird'<?php echo ($template=='Confettibird')?'selected':''; ?>>
-            Confettibird
-          </option>
-        </select>
-      </label>
+        please setup widget key via <a href="/wp-admin/admin.php?page=sakura-network">sakura network menu</a>.
         </p>
-<?php
+        <?php
+    }
+    $networks = SC()->networks();
+    if ($networks->{'status'} != 'success') {
+        echo '<h3>';
+        echo $networks->{'message'};
+        echo '</h3>';
+    } else {
+        ?>
+        <p>
+        <label for="<?php echo $this->get_field_id('text'); ?>">Network:
+        <select class='widefat' id="<?php echo $this->get_field_id('network'); ?>"
+                    name="<?php echo $this->get_field_name('network'); ?>" type="text">
+            <option value=''<?php echo ($network==0)?'selected':''; ?>>
+                All networks
+            </option>
+            <?php
+                foreach( $networks->{'networks'} as $network_obj ) {
+                  $id = $network_obj->{'id'};
+                  $name = $network_obj->{'name'}->{'en'};
+                  ?>
+                    <option value='<?php echo $id ?>'<?php echo ($network==$id)?'selected':''; ?>>
+                        <?php echo $name ?>
+                    </option>
+                  <?php
+                }
+            ?>
+            </select>
+        </label>
+            </p>
+        <?php
+        }
 
         // widget admin form
     }
@@ -633,7 +694,7 @@ This is the part where we save widget options in the database.
 // Updating widget replacing old instances with new
     public function update( $new_instance, $old_instance ) {
         $instance = array();
-        $instance['template'] = ( ! empty( $new_instance['template'] ) ) ? strip_tags( $new_instance['template'] ) : '';
+        $instance['network'] = ( ! empty( $new_instance['network'] ) ) ? strip_tags( $new_instance['network'] ) : '';
         return $instance;
     }
 
@@ -860,7 +921,7 @@ yarn build # or 'yarn dev' for development build.
                 'render_callback' => array( $this, 'block_render_callback' ),
                 'editor_script' => 'sakura-network-block-editor',
                 'attributes'      => [
-                    'template' => [
+                    'network' => [
                     'default' => 'Default',
                     'type'    => 'string'
                 ]],
@@ -878,12 +939,14 @@ yarn build # or 'yarn dev' for development build.
     * The render callback for block Sakura network.
     */
     public function block_render_callback($attributes, $content) {
-        $template = $attributes['template'];
-        do_action('sakura_record_activity', sprintf('block_render_callback, template:%s', $template));
+        $network = $attributes['network'];
+        do_action('sakura_record_activity', sprintf('block_render_callback, network:%s', $network));
         do_action('sakura_record_activity', sprintf('block_render_callback, content:%s', $content));
         $query_args = array();
 
-        $query_args['template'] = $template;
+        if ($network != 0) {
+            $query_args['network'] = $network;
+        }
 
         $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
         $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
@@ -974,6 +1037,30 @@ import './editor.scss';
 import { useBlockProps } from '@wordpress/block-editor';
 
 #+END_SRC
+*** edit function
+#+BEGIN_SRC js
+function Edit( props ) {
+		if (_sakura_networks.status != "success") {
+				return <h3> Failed to get your networks list from Sakura Server! </h3>
+		}
+
+		var networks_options =
+				[{value: 0, label: 'All'}].concat(
+						_sakura_networks.networks.map( network =>
+								{ var o = new Object();
+									o.value = network.id;
+									o.label = network.name.en;
+									return o;}));
+
+				return		<SelectControl
+				label={ __( 'Select target network:' ) }
+				value={ props.attributes.network }
+				onChange={( network ) => { props.setAttributes ({network: network })}}
+				options={ networks_options }
+/>
+    }
+#+END_SRC
+
 *** register block
 - [[https://github.com/WordPress/gutenberg/issues/15545#issuecomment-491111639][how to get value of a select control]]
 #+BEGIN_SRC js
@@ -1023,24 +1110,12 @@ registerBlockType( 'sakura-network/sakura-network', {
 		// 		html: false,
 		// },
 		attributes: {
-				template: {
+				network: {
 						type: 'string',
 						default: 'Default',
 				},
 		},
-		edit: function( props ) {
-				// return "<div>Sakrua Network</div>";
-				return		<SelectControl
-				label={ __( 'Select widget template:' ) }
-				value={ props.attributes.template }
-				onChange={( template ) => { props.setAttributes ({template: template })}}
-				options={ [
-						// { value: null, label: 'Select a User', disabled: true },
-						{ value: 'Default', label: 'Default' },
-						{ value: 'Confettibird', label: 'Confettibird' },
-				] }
-/>
-    },
+		edit: Edit,
 
 		save: function ( props ) {
 	return null;
