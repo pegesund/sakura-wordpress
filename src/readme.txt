@@ -57,6 +57,7 @@ If you encounter issues with the shop/category pages after an update, flush the 
 **Sakura network**
 
 * Insert Sakura network in an individual post or page as a block.
+* Update font family and background color based on user's option.
 
 = 1.0.0 - 2021-02-26 =
 

@@ -50,7 +50,7 @@ final class Sakura {
    *
    * @var string
    */
-  public $version = '1.0.2';
+  public $version = '1.0.1';
   
   /**
    * Sakura Constructor.
@@ -531,6 +531,7 @@ class Sakura_widget extends WP_Widget {
       if (isset($history)) {
           $query_args['history'] = $history;
       }
+  
       $product = wc_get_product();
       if ($product) {
           $query_args['id'] = $product->get_id();
