@@ -439,13 +439,70 @@ class Sakura_widget extends WP_Widget {
           // Widget description
           array( 'description' => __('A widget for your Sakura network', 'sakura_widget_domain' ), )
       );
+  		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+  		add_action( 'admin_footer-widgets.php', array( $this, 'print_scripts' ), 9999 );
     }
+  /**
+  * enqueue js files.
+  */
+  public function enqueue_scripts($hook_suffix) {
+      if ( 'widgets.php' !== $hook_suffix ) {
+          return;
+      }
+  
+      wp_enqueue_style( 'wp-color-picker' );
+      wp_enqueue_script( 'wp-color-picker' );
+      wp_enqueue_script( 'underscore' );
+  }
+  /**
+   * Print scripts.
+   *
+   * @since 1.0
+   */
+  public function print_scripts() {
+  	?>
+  	<script>
+  		( function( $ ){
+  			function initColorPicker( widget ) {
+  				widget.find( '.sakura-color-field' ).wpColorPicker( {
+            defaultColor: "#f6f6f4",
+          palettes: ['#f7edec', '#97a7a9', '#f6f6f4'],
+      change: function(e, ui) {
+              $('.sakura-color-field').val(ui.color.toString());
+              $('.sakura-color-field').trigger('change');
+          },
+      clear: function(e, ui) {
+          $(e.target).trigger('change')}
+  				});
+  			}
+  
+  			function onFormUpdate( event, widget ) {
+  				initColorPicker( widget );
+  			}
+  
+  			$( document ).on( 'widget-added widget-updated', onFormUpdate );
+  
+  			$( document ).ready( function() {
+  				$( '#widgets-right .widget:has(.sakura-color-field)' ).each( function () {
+  					initColorPicker( $( this ) );
+  				} );
+  			} );
+  		}( jQuery ) );
+  	</script>
+  	<?php
+  }
   // Creating widget front-end
   public function widget( $args, $instance ) {
       $query_args = array();
   
       if ( !empty( $instance[ 'network' ] ) ) {
           $query_args['network'] = $instance['network'];
+      }
+      if ( !empty( $instance[ 'bgcolor' ] ) ) {
+          $query_args['bgcolor'] = $instance['bgcolor'];
+      }
+      if ( !empty( $instance[ 'font' ] ) ) {
+          $query_args['font'] = $instance['font'];
       }
   
       $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
@@ -481,57 +538,88 @@ class Sakura_widget extends WP_Widget {
   
   // Widget Backend
   public function form( $instance ) {
+      do_action('sakura_record_activity', sprintf('form instance: %s', json_encode($instance)));
       if ( !empty( $instance[ 'network' ] ) ) {
           $network = (int)$instance['network'];
       } else {
           $network = 0;
       }
-      $sakura_network_options = get_option('sakura_network_option'); // array of all options
-  $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // sakura widget key
-  if ( !isset ($sakura_widget_key)) {
-      ?>
-      <p>
-      please setup widget key via <a href="/wp-admin/admin.php?page=sakura-network">sakura network menu</a>.
-      </p>
-      <?php
-  }
-  $networks = SC()->networks();
-  if ($networks->{'status'} != 'success') {
-      echo '<h3>';
-      echo $networks->{'message'};
-      echo '</h3>';
-  } else {
-      ?>
-      <p>
-      <label for="<?php echo $this->get_field_id('text'); ?>">Network:
-      <select class='widefat' id="<?php echo $this->get_field_id('network'); ?>"
-                  name="<?php echo $this->get_field_name('network'); ?>" type="text">
-          <option value=''<?php echo ($network==0)?'selected':''; ?>>
-              All networks
-          </option>
-          <?php
-              foreach( $networks->{'networks'} as $network_obj ) {
-                $id = $network_obj->{'id'};
-                $name = $network_obj->{'name'}->{'en'};
-                ?>
-                  <option value='<?php echo $id ?>'<?php echo ($network==$id)?'selected':''; ?>>
-                      <?php echo $name ?>
-                  </option>
-                <?php
-              }
-          ?>
-          </select>
-      </label>
-          </p>
-      <?php
-      }
+      $bgcolor = (!empty($instance['bgcolor'] ) ) ? $instance['bgcolor'] : '#f6f6f4';
+      $font = (!empty($instance['font'] ) ) ? $instance['font'] : '';
   
+      $sakura_network_options = get_option('sakura_network_option'); // array of all options
+      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // sakura widget key
+      if ( !isset ($sakura_widget_key)) {
+          ?>
+          <p>
+          please setup widget key via <a href="/wp-admin/admin.php?page=sakura-network">sakura network menu</a>.
+          </p>
+          <?php
+      }
+      $networks = SC()->networks();
+      if ($networks->{'status'} != 'success') {
+          echo '<h3>';
+          echo $networks->{'message'};
+          echo '</h3>';
+      } else {
+          ?>
+          <p>
+          <label for="<?php echo $this->get_field_id('network'); ?>">Network: </label>
+          <select class='widefat' id="<?php echo $this->get_field_id('network'); ?>"
+                      name="<?php echo $this->get_field_name('network'); ?>" type="text">
+              <option value=''<?php echo ($network==0)?'selected':''; ?>>
+                  All networks
+              </option>
+              <?php
+                  foreach( $networks->{'networks'} as $network_obj ) {
+                  $id = $network_obj->{'id'};
+                  $name = $network_obj->{'name'}->{'en'};
+                  ?>
+                      <option value='<?php echo $id ?>'<?php echo ($network==$id)?'selected':''; ?>>
+                          <?php echo $name ?>
+                      </option>
+                  <?php
+                  }
+              ?>
+              </select>
+              </p>
+          <p>
+          <label for="<?php echo $this->get_field_id('bgcolor'); ?>">Background color:</label>
+          <input class="widefat sakura-color-field" id="<?php echo $this->get_field_id('bgcolor'); ?>"
+                  name="<?php echo $this->get_field_name('bgcolor'); ?>"
+                  value="<?php echo $bgcolor; ?>" type="text" />
+              </p>
+          <p>
+          <label for="<?php echo $this->get_field_id('font'); ?>">Font: </label>
+          <select class='widefat' id="<?php echo $this->get_field_id('font'); ?>"
+                      name="<?php echo $this->get_field_name('font'); ?>" type="text">
+              <option value=''<?php echo ($font=='')?'selected':''; ?>>
+                  Default
+              </option>
+              <option value='Montserrat'<?php echo ($font=='Montserrat')?'selected':''; ?>>
+                  Montserrat
+              </option>
+              <option value='Avenir LT W04_65 Medium1475536'<?php echo ($font=='Avenir LT W04_65 Medium1475536')?'selected':''; ?>>
+                  Avenir
+              </option>
+              <option value='Vesper Libre'<?php echo ($font=='Vesper Libre')?'selected':''; ?>>
+                  Vesper Libre
+              </option>
+              <option value='IBM Plex Sans'<?php echo ($font=='IBM Plex Sans')?'selected':''; ?>>
+                  IBM Plex Sans
+              </option>
+              </select>
+              </p>
+          <?php
+      }
       // widget admin form
   }
   // Updating widget replacing old instances with new
       public function update( $new_instance, $old_instance ) {
           $instance = array();
           $instance['network'] = ( ! empty( $new_instance['network'] ) ) ? strip_tags( $new_instance['network'] ) : '';
+          $instance['bgcolor'] = ( ! empty( $new_instance['bgcolor'] ) ) ? strip_tags( $new_instance['bgcolor'] ) : '';
+          $instance['font'] = ( ! empty( $new_instance['font'] ) ) ? strip_tags( $new_instance['font'] ) : '';
           return $instance;
       }
   
