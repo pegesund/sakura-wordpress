@@ -5,7 +5,7 @@
  */
 import { registerBlockType } from '@wordpress/blocks';
 
-import { SelectControl } from '@wordpress/components';
+import { SelectControl, ColorPalette } from '@wordpress/components';
 
 /**
  * Retrieves the translation of text.
@@ -44,14 +44,38 @@ function Edit( props ) {
 									o.value = network.id;
 									o.label = network.name.en;
 									return o;}));
+		var bgcolor_options = [{value: '', label: 'Default'},
+													 {value: '#f7edec', label: 'Red'},
+													 {value: '#97a7a9', label: 'Blue'}];
 
-				return		<SelectControl
-				label={ __( 'Select target network:' ) }
-				value={ props.attributes.network }
-				onChange={( network ) => { props.setAttributes ({network: network })}}
-				options={ networks_options }
-/>
-    }
+		var font_options = [{value: '', label: 'Default'},
+													 {value: 'Montserrat', label: 'Montserrat'},
+												{value: 'Avenir LT W04_65 Medium1475536', label: 'Avenir'},
+												{value: 'Vesper Libre', label: 'Vesper Libre'},
+													 {value: 'IBM Plex Sans', label: 'IBM Plex Sans'}];
+
+		return (
+				[
+								<SelectControl
+						label={ __( 'Target network:' ) }
+						value={ props.attributes.network }
+						onChange={( network ) => { props.setAttributes ({network: network })}}
+						options={ networks_options }
+								/>,
+								<SelectControl
+						label={ __( 'Background color:' ) }
+						value={ props.attributes.bgcolor }
+						onChange={( bgcolor ) => { props.setAttributes ({bgcolor: bgcolor })}}
+						options={ bgcolor_options }
+								/>,
+								<SelectControl
+						label={ __( 'Widget font:' ) }
+						value={ props.attributes.font }
+						onChange={( font ) => { props.setAttributes ({font: font })}}
+						options={ font_options }
+								/>,
+				]);
+}
 
 /**
  * Every block starts by registering a new block type definition.
@@ -101,7 +125,15 @@ registerBlockType( 'sakura-network/sakura-network', {
 		attributes: {
 				network: {
 						type: 'string',
-						default: 'Default',
+						default: '0',
+				},
+				bgcolor: {
+						type: 'string',
+						default: '',
+				},
+				font: {
+						type: 'string',
+						default: '',
 				},
 		},
 		edit: Edit,

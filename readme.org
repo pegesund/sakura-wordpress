@@ -1022,7 +1022,15 @@ yarn build # or 'yarn dev' for development build.
                     'network' => [
                     'default' => 'Default',
                     'type'    => 'string'
-                ]],
+                ],
+                    'bgcolor' => [
+                    'type'    => 'string'
+                ],
+                    'font' => [
+                    'default' => 'Default',
+                    'type'    => 'string'
+                ]
+    ],
                 'editor_style'  => 'sakura-network-block-editor',
                 'style'         => 'sakura-network-block'
             )
@@ -1044,6 +1052,14 @@ yarn build # or 'yarn dev' for development build.
 
         if ($network != 0) {
             $query_args['network'] = $network;
+        }
+        $bgcolor = $attributes['bgcolor'];
+        if (! empty($bgcolor)) {
+            $query_args['bgcolor'] = $bgcolor;
+        }
+        $font = $attributes['font'];
+        if (! empty($font)) {
+            $query_args['font'] = $font;
         }
 
         $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
@@ -1107,7 +1123,7 @@ yarn build # or 'yarn dev' for development build.
  */
 import { registerBlockType } from '@wordpress/blocks';
 
-import { SelectControl } from '@wordpress/components';
+import { SelectControl, ColorPalette } from '@wordpress/components';
 
 /**
  * Retrieves the translation of text.
@@ -1136,6 +1152,7 @@ import { useBlockProps } from '@wordpress/block-editor';
 
 #+END_SRC
 *** edit function
+TODO: select color by [[https://developer.wordpress.org/block-editor/reference-guides/components/color-palette/][color palette]]
 #+BEGIN_SRC js
 function Edit( props ) {
 		if (_sakura_networks.status != "success") {
@@ -1149,17 +1166,41 @@ function Edit( props ) {
 									o.value = network.id;
 									o.label = network.name.en;
 									return o;}));
+		var bgcolor_options = [{value: '', label: 'Default'},
+													 {value: '#f7edec', label: 'Red'},
+													 {value: '#97a7a9', label: 'Blue'}];
 
-				return		<SelectControl
-				label={ __( 'Select target network:' ) }
-				value={ props.attributes.network }
-				onChange={( network ) => { props.setAttributes ({network: network })}}
-				options={ networks_options }
-/>
-    }
+		var font_options = [{value: '', label: 'Default'},
+													 {value: 'Montserrat', label: 'Montserrat'},
+												{value: 'Avenir LT W04_65 Medium1475536', label: 'Avenir'},
+												{value: 'Vesper Libre', label: 'Vesper Libre'},
+													 {value: 'IBM Plex Sans', label: 'IBM Plex Sans'}];
+
+		return (
+				[
+								<SelectControl
+						label={ __( 'Target network:' ) }
+						value={ props.attributes.network }
+						onChange={( network ) => { props.setAttributes ({network: network })}}
+						options={ networks_options }
+								/>,
+								<SelectControl
+						label={ __( 'Background color:' ) }
+						value={ props.attributes.bgcolor }
+						onChange={( bgcolor ) => { props.setAttributes ({bgcolor: bgcolor })}}
+						options={ bgcolor_options }
+								/>,
+								<SelectControl
+						label={ __( 'Widget font:' ) }
+						value={ props.attributes.font }
+						onChange={( font ) => { props.setAttributes ({font: font })}}
+						options={ font_options }
+								/>,
+				]);
+}
 #+END_SRC
 *** register block
-- [[https://github.com/WordPress/gutenberg/issues/15545#issuecomment-491111639][how to get value of a select control]]
+[[https://github.com/WordPress/gutenberg/issues/15545#issuecomment-491111639][how to get value of a select control]]
 #+BEGIN_SRC js
 /**
  * Every block starts by registering a new block type definition.
@@ -1209,7 +1250,15 @@ registerBlockType( 'sakura-network/sakura-network', {
 		attributes: {
 				network: {
 						type: 'string',
-						default: 'Default',
+						default: '0',
+				},
+				bgcolor: {
+						type: 'string',
+						default: '',
+				},
+				font: {
+						type: 'string',
+						default: '',
 				},
 		},
 		edit: Edit,

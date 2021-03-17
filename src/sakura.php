@@ -370,7 +370,15 @@ final class Sakura {
                   'network' => [
                   'default' => 'Default',
                   'type'    => 'string'
-              ]],
+              ],
+                  'bgcolor' => [
+                  'type'    => 'string'
+              ],
+                  'font' => [
+                  'default' => 'Default',
+                  'type'    => 'string'
+              ]
+  ],
               'editor_style'  => 'sakura-network-block-editor',
               'style'         => 'sakura-network-block'
           )
@@ -387,6 +395,14 @@ final class Sakura {
   
       if ($network != 0) {
           $query_args['network'] = $network;
+      }
+      $bgcolor = $attributes['bgcolor'];
+      if (! empty($bgcolor)) {
+          $query_args['bgcolor'] = $bgcolor;
+      }
+      $font = $attributes['font'];
+      if (! empty($font)) {
+          $query_args['font'] = $font;
       }
   
       $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
