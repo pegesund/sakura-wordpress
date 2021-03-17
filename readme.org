@@ -1607,6 +1607,7 @@ scp sakura.zip petter:/srv/public/download/wordpress/
 #+RESULTS:
 
 * Upload to WordPress.org svn repository
+[[https://wordpress.org/plugins/sakura-network/][Sakura Network in WordPress]]
 ** References
 - [[https://plugins.svn.wordpress.org/sakura-network][SVN URL]]
 - [[https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/][Using Subversion with the WordPress Plugin Directory]]
