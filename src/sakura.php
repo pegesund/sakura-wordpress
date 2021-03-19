@@ -731,3 +731,53 @@ class SakuraNetwork {
 
 if ( is_admin() )
 	$sakura_network = new SakuraNetwork();
+
+
+add_filter( 'bulk_actions-edit-product', 'register_my_bulk_actions' );
+ 
+function register_my_bulk_actions($bulk_actions) {
+  $bulk_actions['export_to_sakura'] = __( 'Export to Sakura', 'export_to_sakura');
+  return $bulk_actions;
+}
+
+add_filter( 'handle_bulk_actions-edit-product', 'my_bulk_action_handler', 10, 3 );
+ 
+function my_bulk_action_handler( $redirect_to, $doaction, $post_ids ) {
+    
+  if ( $doaction !== 'export_to_sakura' ) {
+    return $redirect_to;
+  }
+    $curl = curl_init('http://127.0.0.1:3000');
+    curl_setopt($curl, CURLOPT_POST, 1);
+
+    $allProducts = array();
+
+    foreach ( $post_ids as $post_id ) {
+
+    $prod = wc_get_product( $post_id );
+    array_push($allProducts, $prod->get_data());
+  }
+
+  curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($allProducts));
+  curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+  $result = curl_exec($curl);
+  curl_close($curl);
+
+  $redirect_to = add_query_arg( 'bulk_export_posts', count( $post_ids ), $redirect_to );
+  return $redirect_to;
+}
+
+add_action( 'admin_notices', 'my_bulk_action_admin_notice' );
+ 
+function my_bulk_action_admin_notice() {
+  if ( ! empty( $_REQUEST['bulk_export_posts'] ) ) {
+    $export_count = intval( $_REQUEST['bulk_export_posts'] );
+    printf( '<div id="message" class="updated fade">' .
+      _n( 'Exported %s post to Sakura',
+        'Exported %s posts to Sakura',
+        $export_count,
+        'export_to_sakura'
+      ) . '</div>', $export_count );
+  }
+}
