@@ -747,16 +747,21 @@ function my_bulk_action_handler( $redirect_to, $doaction, $post_ids ) {
   if ( $doaction !== 'export_to_sakura' ) {
     return $redirect_to;
   }
+
+    $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+    $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+
     $curl = curl_init('http://127.0.0.1:3000');
     curl_setopt($curl, CURLOPT_POST, 1);
 
     $allProducts = array();
 
-    foreach ( $post_ids as $post_id ) {
+    array_push($allProducts, (object)array('sakura_widget_key' => $sakura_widget_key));
 
-    $prod = wc_get_product( $post_id );
-    array_push($allProducts, $prod->get_data());
-  }
+    foreach ( $post_ids as $post_id ) {
+        $prod = wc_get_product( $post_id );
+        array_push($allProducts, $prod->get_data());
+    }
 
   curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($allProducts));
   curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
