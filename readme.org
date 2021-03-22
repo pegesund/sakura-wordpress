@@ -499,6 +499,20 @@ to override them and not use attributes such as =height=.
         {
             return;
         }
+        $fromSite = $articles->{'fromSite'};
+        $fromArticle = $articles->{'fromArticle'};
+        $sakura_from = '';
+        if (!empty($fromSite)) {
+            $sakura_from = $fromSite . ":";
+        }
+        if (!empty($fromArticle)) {
+            if (empty($sakura_from)) {
+                $sakura_from = ':';
+            }
+            $sakura_from .= $fromArticle;
+        }
+
+        $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
         ?>
             <br>
             <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700&display=swap&subset=latin-ext" rel="stylesheet">
@@ -528,8 +542,35 @@ to override them and not use attributes such as =height=.
                             $desc = esc_attr($article_obj->{'description_i18n'}->{'en'});
                             $price = esc_attr($article_obj->{'price'});
                             $currency = esc_attr($article_obj->{'currency'});
+                            $id = esc_attr($article_obj->{'id'});
                             $url = esc_attr($article_obj->{'url'});
                             $img = esc_attr($article_obj->{'photo'});
+                            $from_network = $article_obj->{'from_network'};
+                            $query_args = array();
+                            if (!empty($sakura_from)) {
+                                $query_args['sakura_from'] = $sakura_from;
+                            }
+                            $query_args['sakura_to'] = $id;
+                            if (!empty($from_network)) {
+                                $query_args['sakura_network'] = $from_network;
+                            }
+
+                            if (str_contains($url, '?')) {
+                                $url .= '&';
+                            } else {
+                                $url .= '?';
+                            }
+                            $url .= http_build_query($query_args);
+                            // $trackImg = $sakura_server . "/api/widget/trackingImg?event=view&to-article=" . $id;
+                            // if (!empty($fromSite)) {
+                            //     $trackImg = $trackImg . "&from-site=" . $fromSite;
+                            // }
+                            // if (!empty($fromArticle)) {
+                            //     $trackImg = $trackImg . "&from-article=" . $fromArticle;
+                            // }
+                            // if (!empty($from_network)) {
+                            //     $trackImg = $trackImg . "&from-network=" . $from_network;
+                            // }
 
                             ?>
                             <td>
