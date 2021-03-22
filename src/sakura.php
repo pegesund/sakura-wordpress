@@ -233,7 +233,7 @@ final class Sakura {
   /**
   * fetch articles from Sakura server
   */
-  public function articles() {
+  public function articles($target) {
       $query_args = array();
   
       $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
@@ -245,6 +245,9 @@ final class Sakura {
       $history = SC()->sakura_history_in_cookie();
       if (isset($history)) {
           $query_args['history'] = $history;
+      }
+      if (isset($target)) {
+          $query_args['target'] = $target;
       }
   
       $product = wc_get_product();
@@ -284,7 +287,7 @@ final class Sakura {
       }
       do_action('sakura_record_activity', 'append_widget_in_email_receipt');
   
-      $articles = $this->articles();
+      $articles = $this->articles('email');
       if ($articles->{'status'} != 'success' ||
           empty($articles->{'articles'}))
       {
@@ -292,17 +295,20 @@ final class Sakura {
       }
       ?>
           <br>
-          <b style='display: block; font-family: "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif; font-size: 18px; font-weight: bold; line-height: 130%; margin: 0 0 5px; text-align: left;'>OTHER CUSTOMERS ALSO LIKE</b>
-          Discovery Name is a digital cooperation of online offering made for you to give you an even more relevant and exciting discovery online.
+          <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700&display=swap&subset=latin-ext" rel="stylesheet">
+          <b style='display: block; font-family: Montserrat, "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif; font-size: 18px; font-weight: bold; line-height: 130%; margin: 0 0 5px; text-align: left;'>OTHER CUSTOMERS ALSO LIKE</b>
+          <span style='font-family: Montserrat;'>
+          Discovery Name is a digital cooperation of online offering made for you to give you an even more relevant and exciting discovery online. </span>
           <br>
-          Below you will find even more products that global customers also views, visits and purchases. On behalf of Discovery Name, we thank You for your purchase and invite you to discover even more products by clicking on one of the assets below.
+          <span style='font-family: Montserrat;'>
+          Below you will find even more products that global customers also views, visits and purchases. On behalf of Discovery Name, we thank You for your purchase and invite you to discover even more products by clicking on one of the assets below. </span>
   
           <br>
           <div style="background:#f6f6f4;background-color:#f6f6f4; padding: 5px; width:100%">
               <table style="border-collapse: collapse; width: 100%; height: 36px; background-color: #f6f6f4; " border="0">
               <tbody>
                   <tr style="width:100%; height: 18px;">
-              <td style="width: 100%; height: 18px;">&nbsp; &nbsp; DISCOVERY IN THE BLUE</td>
+              <td style="padding-top: 5px;padding-bottom: 5px;width: 100%; height: 18px;font-family: Montserrat;">&nbsp; &nbsp; DISCOVERY IN THE BLUE</td>
                   </tr>
                   <tr style="width:100%; height: 18px;">
               <td style="width: 100%; height: 18px;">
@@ -323,10 +329,10 @@ final class Sakura {
                           <td>
                           <a target="_blank" href="<?php echo $url ?>" title="<?php echo $desc ?>">
                           <img src="<?php echo $img ?>" style="max-height: 192px; max-width: 192px;"/></a>
-                          <div style="text-align: center;" title="<?php echo $desc ?>"><b><?php echo $title ?></b></div>
+                          <div style="text-align: center;font-family: Montserrat;" title="<?php echo $desc ?>"><b><?php echo $title ?></b></div>
                           <div style="text-align: center;" title="<?php echo $desc ?>">
                               <div data-column="1" data-groupkey="0">
-                          <div><?php echo $price ?>&nbsp;<?php echo $currency ?></div>
+                          <div style="font-family: Montserrat;"><?php echo $price ?>&nbsp;<?php echo $currency ?></div>
                               </div>
                           </div>
                           </td>
