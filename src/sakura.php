@@ -748,22 +748,26 @@ function my_bulk_action_handler( $redirect_to, $doaction, $post_ids ) {
     return $redirect_to;
   }
 
-    $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
-    $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+  $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+  $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
 
-    $curl = curl_init('http://127.0.0.1:3000');
-    curl_setopt($curl, CURLOPT_POST, 1);
+  $curl = curl_init('https://www.sakura.eco/api/addWCProducts');
+  curl_setopt($curl, CURLOPT_POST, 1);
 
-    $allProducts = array();
+  $allProducts = array();
+  $payload = array();
+  $payload['token'] = 'demotoken';
+  $payload['sakura_widget_key'] = $sakura_widget_key;
 
-    array_push($allProducts, (object)array('sakura_widget_key' => $sakura_widget_key));
+  //$allProducts = (object)array('data' => $allProducts);
 
-    foreach ( $post_ids as $post_id ) {
-        $prod = wc_get_product( $post_id );
-        array_push($allProducts, $prod->get_data());
-    }
+  foreach ( $post_ids as $post_id ) {
+    $prod = wc_get_product( $post_id );
+    array_push($allProducts, $prod->get_data());
+  }
+  $payload['all_products'] = $allProducts;
 
-  curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($allProducts));
+  curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($payload));
   curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
   $result = curl_exec($curl);
