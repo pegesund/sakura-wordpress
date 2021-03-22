@@ -72,6 +72,8 @@ final class Sakura {
   		 add_filter( 'plugin_action_links_' . SAKURA_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
        add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
        add_action('enqueue_block_editor_assets', array( $this, 'setup_block_options'), 0);
+       // we have to add it before default actions. @see https://github.com/woocommerce/woocommerce/blob/trunk/includes/class-wc-emails.php#L194
+  		 add_action( 'woocommerce_email_footer' , array( $this, 'append_widget_in_email_receipt' ), 9);
   
        // a uniform interface to woocommerce events.
        add_action( 'woocommerce_new_order', function ($order_id) {
@@ -228,6 +230,126 @@ final class Sakura {
           do_action('sakura_record_activity', sprintf('notify sakura for payment complete: #%d', $order_id));
       }
   
+  /**
+  * fetch articles from Sakura server
+  */
+  public function articles() {
+      $query_args = array();
+  
+      $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+  
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+      $url = $sakura_server . '/api/widget/articles/' . $sakura_widget_key;
+  
+      $history = SC()->sakura_history_in_cookie();
+      if (isset($history)) {
+          $query_args['history'] = $history;
+      }
+  
+      $product = wc_get_product();
+      if ($product) {
+          $query_args['id'] = $product->get_id();
+          $query_args['sku'] = $product->get_sku();
+      }
+      if (sizeof($query_args) > 0) {
+          $url = $url . '?' . http_build_query($query_args);
+      }
+      $http_args = array(
+          'method'      => 'GET',
+          'timeout'     => MINUTE_IN_SECONDS,
+          'redirection' => 0,
+          'httpversion' => '1.0',
+          'blocking'    => true,
+          'user-agent'  => sprintf('WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version']),
+          'headers'     => array(
+              'Content-Type' => 'application/json',
+          ));
+      $response = wp_safe_remote_request($url);
+      do_action('sakura_record_activity', $response);
+      if ($response instanceof WP_Error) {
+          return (object)array('status' => 'error',
+                               'message' => 'Failed to get articles');
+      }
+      return json_decode($response['body']);
+  }
+  /**
+  * apend widget in email receipt
+  */
+  public function append_widget_in_email_receipt($email) {
+      $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+      if (!isset ($sakura_network_options['sakura_email_receipt']) ||
+          !$sakura_network_options['sakura_email_receipt']) {
+          return;
+      }
+      do_action('sakura_record_activity', 'append_widget_in_email_receipt');
+  
+      $articles = $this->articles();
+      if ($articles->{'status'} != 'success' ||
+          empty($articles->{'articles'}))
+      {
+          return;
+      }
+      ?>
+          <br>
+          <b style='display: block; font-family: "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif; font-size: 18px; font-weight: bold; line-height: 130%; margin: 0 0 5px; text-align: left;'>OTHER CUSTOMERS ALSO LIKE</b>
+          Discovery Name is a digital cooperation of online offering made for you to give you an even more relevant and exciting discovery online.
+          <br>
+          Below you will find even more products that global customers also views, visits and purchases. On behalf of Discovery Name, we thank You for your purchase and invite you to discover even more products by clicking on one of the assets below.
+  
+          <br>
+          <div style="background:#f6f6f4;background-color:#f6f6f4; padding: 5px; width:100%">
+              <table style="border-collapse: collapse; width: 100%; height: 36px; background-color: #f6f6f4; " border="0">
+              <tbody>
+                  <tr style="width:100%; height: 18px;">
+              <td style="width: 100%; height: 18px;">&nbsp; &nbsp; DISCOVERY IN THE BLUE</td>
+                  </tr>
+                  <tr style="width:100%; height: 18px;">
+              <td style="width: 100%; height: 18px;">
+                  <div style="position: relative; width: 100%; overflow-x: scroll; overflow-y: hidden; height: 280px;">
+                  <table style="border-collapse: collapse; margin-left: auto; margin-right: auto; position: absolute; top: 0; left: 0; right: 0; bottom: 0; " border="0">
+                      <tbody>
+                  <tr>
+                  <?php
+                      foreach( $articles->{'articles'} as $article_obj ) {
+                          $title = esc_attr($article_obj->{'title_i18n'}->{'en'});
+                          $desc = esc_attr($article_obj->{'description_i18n'}->{'en'});
+                          $price = esc_attr($article_obj->{'price'});
+                          $currency = esc_attr($article_obj->{'currency'});
+                          $url = esc_attr($article_obj->{'url'});
+                          $img = esc_attr($article_obj->{'photo'});
+  
+                          ?>
+                          <td>
+                          <a target="_blank" href="<?php echo $url ?>" title="<?php echo $desc ?>">
+                          <img src="<?php echo $img ?>" style="max-height: 192px; max-width: 192px;"/></a>
+                          <div style="text-align: center;" title="<?php echo $desc ?>"><b><?php echo $title ?></b></div>
+                          <div style="text-align: center;" title="<?php echo $desc ?>">
+                              <div data-column="1" data-groupkey="0">
+                          <div><?php echo $price ?>&nbsp;<?php echo $currency ?></div>
+                              </div>
+                          </div>
+                          </td>
+                          <?php
+                      }
+                  ?>
+                  </tr>
+                      </tbody>
+                  </table>
+                  </div>
+              </td>
+                  </tr>
+              </tbody>
+              </table>
+              <div style="margin: 0; float: right;">
+                  <span style="color: rgb(12, 46, 24); font-family: Montserrat; height:100%;">Networked by</span>
+                  <a href="http://sakura.eco" target="_blank">
+                  <img style="height: 15px; vertical-align: top;" src="https://www.sakura.eco/img/logo-2021-1.png"/>
+                  </a>
+              </div>
+          </div>
+      <?php
+  }
   /**
   * Initialize networks data for current site.
   */
@@ -704,11 +826,19 @@ class SakuraNetwork {
   		'sakura-network-admin', // page
   		'sakura_network_setting_section' // section
   	);
+  
+  	add_settings_field(
+  		'sakura_email_receipt', // id
+  		'Include widget in new order email receipt', // title
+  		array( $this, 'sakura_email_receipt_callback' ), // callback
+  		'sakura-network-admin', // page
+  		'sakura_network_setting_section' // section
+  	);
   }
   public function sakura_network_sanitize($input) {
   	$sanitary_values = array();
-  	if ( isset( $input['sakura_company_id'] ) ) {
-  		$sanitary_values['sakura_company_id'] = sanitize_text_field( $input['sakura_company_id'] );
+  	if ( isset( $input['sakura_email_receipt'] ) ) {
+  		$sanitary_values['sakura_email_receipt'] = sanitize_text_field( $input['sakura_email_receipt'] );
   	}
   
   	if ( isset( $input['sakura_widget_key'] ) ) {
@@ -727,6 +857,17 @@ class SakuraNetwork {
   	);
   }
   
+  public function sakura_email_receipt_callback() {
+      $sakura_email_receipt = false;
+      if (isset( $this->sakura_network_options['sakura_email_receipt'] )) {
+          $sakura_email_receipt = $this->sakura_network_options['sakura_email_receipt'];
+      }
+      $html = '<input type="checkbox" id="sakura_email_receipt" name="sakura_network_option[sakura_email_receipt]" value="1"'
+          . checked( 1, $sakura_email_receipt, false ) . '/>';
+      $html .= '<label for="sakura_email_receipt_key">Include widget in new order email receipt</label>';
+  
+      printf($html);
+  }
 }
 
 if ( is_admin() )
