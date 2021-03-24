@@ -729,12 +729,6 @@ class SakuraNetwork {
   
 }
 
-if ( is_admin() )
-	$sakura_network = new SakuraNetwork();
-
-
-add_action( 'plugins_loaded', array( 'BulkExport', 'init' ));
-
 add_filter( 'http_request_args', function ( $args ) {
 
   $args['reject_unsafe_urls'] = false;
@@ -744,13 +738,6 @@ add_filter( 'http_request_args', function ( $args ) {
 }, 999 );
 
 class BulkExport {
-
-  public $response = '';
-
-  public static function init() {
-    $class = __CLASS__;
-    new $class;
-  }
 
   public function __construct() {
     add_filter( 'bulk_actions-edit-product', array( $this, 'register_my_bulk_actions' ));
@@ -797,27 +784,39 @@ class BulkExport {
       'cookies'     => array(),
     );
 
-    $sakura_server = apply_filters('sakura_update_server_address', 'httpw://www.sakura.eco');
+    $sakura_server = apply_filters('sakura_update_server_address', 'http://localhost:8080');
     $response = wp_safe_remote_request(sprintf('%s/api/addWCProducts', $sakura_server), $http_args);
 
-    $redirect_to = add_query_arg( 'bulk_export_posts', count( $post_ids ), $redirect_to );
-    $redirect_to = add_query_arg( 'bulk_export_response', $response, $redirect_to );
+    $countPosts = 0;
+    // sanity check
+    if ($response) {
+      $countPosts = count( $post_ids );
+    }
+  
+    $redirect_to = add_query_arg( 'bulk_export_posts', $countPosts, $redirect_to );
 
     return $redirect_to;
   }
      
   function my_bulk_action_admin_notice() {
-    if ( ! empty( $_REQUEST['bulk_export_posts'] && ! empty( $_REQUEST['bulk_export_response'] )) ) {
+    if ( ! empty( $_REQUEST['bulk_export_posts'] ) ) {
       $export_count = intval( $_REQUEST['bulk_export_posts'] );
+      if ($export_count > 0) {
       printf( '<div id="message" class="updated fade">' .
         _n( 'Exported %s post to Sakura',
           'Exported %s posts to Sakura',
           $export_count,
           'export_to_sakura'
         ) . '</div>', $export_count );
+      }
     }
-  }
-  
+  } 
+}
+
+if ( is_admin() )
+{
+  $sakura_network = new SakuraNetwork();
+  $bulk_export = new BulkExport();
 }
 
  
