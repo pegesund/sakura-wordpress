@@ -735,7 +735,17 @@ if ( is_admin() )
 
 add_action( 'plugins_loaded', array( 'BulkExport', 'init' ));
 
+add_filter( 'http_request_args', function ( $args ) {
+
+  $args['reject_unsafe_urls'] = false;
+  $args['sslverify'] = false;
+
+  return $args;
+}, 999 );
+
 class BulkExport {
+
+  public $response = '';
 
   public static function init() {
     $class = __CLASS__;
@@ -762,9 +772,6 @@ class BulkExport {
     $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
     $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
   
-    $curl = curl_init('https://www.sakura.eco/api/addWCProducts ');
-    curl_setopt($curl, CURLOPT_POST, 1);
-  
     $allProducts = array();
     $payload = array();
     $payload['token'] = 'demotoken';
@@ -776,18 +783,31 @@ class BulkExport {
     }
     $payload['all_products'] = $allProducts;
   
-    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-    $result = curl_exec($curl);
-    curl_close($curl);
-  
+    $http_args = array(
+      'method'      => 'POST',
+      'timeout'     => MINUTE_IN_SECONDS,
+      'redirection' => 0,
+      'httpversion' => '1.0',
+      'blocking'    => true,
+      'user-agent'  => sprintf('WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version']),
+      'body'        => trim(wp_json_encode($payload)),
+      'headers'     => array(
+          'Content-Type' => 'application/json',
+      ),
+      'cookies'     => array(),
+    );
+
+    $sakura_server = apply_filters('sakura_update_server_address', 'httpw://www.sakura.eco');
+    $response = wp_safe_remote_request(sprintf('%s/api/addWCProducts', $sakura_server), $http_args);
+
     $redirect_to = add_query_arg( 'bulk_export_posts', count( $post_ids ), $redirect_to );
+    $redirect_to = add_query_arg( 'bulk_export_response', $response, $redirect_to );
+
     return $redirect_to;
   }
      
   function my_bulk_action_admin_notice() {
-    if ( ! empty( $_REQUEST['bulk_export_posts'] ) ) {
+    if ( ! empty( $_REQUEST['bulk_export_posts'] && ! empty( $_REQUEST['bulk_export_response'] )) ) {
       $export_count = intval( $_REQUEST['bulk_export_posts'] );
       printf( '<div id="message" class="updated fade">' .
         _n( 'Exported %s post to Sakura',
