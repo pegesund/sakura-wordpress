@@ -733,60 +733,71 @@ if ( is_admin() )
 	$sakura_network = new SakuraNetwork();
 
 
-add_filter( 'bulk_actions-edit-product', 'register_my_bulk_actions' );
- 
-function register_my_bulk_actions($bulk_actions) {
-  $bulk_actions['export_to_sakura'] = __( 'Export to Sakura', 'export_to_sakura');
-  return $bulk_actions;
-}
+add_action( 'plugins_loaded', array( 'BulkExport', 'init' ));
 
-add_filter( 'handle_bulk_actions-edit-product', 'my_bulk_action_handler', 10, 3 );
- 
-function my_bulk_action_handler( $redirect_to, $doaction, $post_ids ) {
+class BulkExport {
+
+  public static function init() {
+    $class = __CLASS__;
+    new $class;
+  }
+
+  public function __construct() {
+    add_filter( 'bulk_actions-edit-product', array( $this, 'register_my_bulk_actions' ));
+    add_filter( 'handle_bulk_actions-edit-product', array( $this, 'my_bulk_action_handler'), 10, 3 );
+    add_action( 'admin_notices', array($this, 'my_bulk_action_admin_notice' ));
+  }
+
+  function register_my_bulk_actions($bulk_actions) {
+    $bulk_actions['export_to_sakura'] = __( 'Export to Sakura', 'export_to_sakura');
+    return $bulk_actions;
+  }
+     
+  function my_bulk_action_handler( $redirect_to, $doaction, $post_ids ) {
+      
+    if ( $doaction !== 'export_to_sakura' ) {
+      return $redirect_to;
+    }
+  
+    $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+    $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+  
+    $curl = curl_init('https://www.sakura.eco/api/addWCProducts ');
+    curl_setopt($curl, CURLOPT_POST, 1);
+  
+    $allProducts = array();
+    $payload = array();
+    $payload['token'] = 'demotoken';
+    $payload['sakura_widget_key'] = $sakura_widget_key;
     
-  if ( $doaction !== 'export_to_sakura' ) {
+    foreach ( $post_ids as $post_id ) {
+      $prod = wc_get_product( $post_id );
+      array_push($allProducts, $prod->get_data());
+    }
+    $payload['all_products'] = $allProducts;
+  
+    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+    $result = curl_exec($curl);
+    curl_close($curl);
+  
+    $redirect_to = add_query_arg( 'bulk_export_posts', count( $post_ids ), $redirect_to );
     return $redirect_to;
   }
-
-  $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
-  $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
-
-  $curl = curl_init('https://www.sakura.eco/api/addWCProducts');
-  curl_setopt($curl, CURLOPT_POST, 1);
-
-  $allProducts = array();
-  $payload = array();
-  $payload['token'] = 'demotoken';
-  $payload['sakura_widget_key'] = $sakura_widget_key;
-
-  //$allProducts = (object)array('data' => $allProducts);
-
-  foreach ( $post_ids as $post_id ) {
-    $prod = wc_get_product( $post_id );
-    array_push($allProducts, $prod->get_data());
+     
+  function my_bulk_action_admin_notice() {
+    if ( ! empty( $_REQUEST['bulk_export_posts'] ) ) {
+      $export_count = intval( $_REQUEST['bulk_export_posts'] );
+      printf( '<div id="message" class="updated fade">' .
+        _n( 'Exported %s post to Sakura',
+          'Exported %s posts to Sakura',
+          $export_count,
+          'export_to_sakura'
+        ) . '</div>', $export_count );
+    }
   }
-  $payload['all_products'] = $allProducts;
-
-  curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($payload));
-  curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-  curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-  $result = curl_exec($curl);
-  curl_close($curl);
-
-  $redirect_to = add_query_arg( 'bulk_export_posts', count( $post_ids ), $redirect_to );
-  return $redirect_to;
+  
 }
 
-add_action( 'admin_notices', 'my_bulk_action_admin_notice' );
  
-function my_bulk_action_admin_notice() {
-  if ( ! empty( $_REQUEST['bulk_export_posts'] ) ) {
-    $export_count = intval( $_REQUEST['bulk_export_posts'] );
-    printf( '<div id="message" class="updated fade">' .
-      _n( 'Exported %s post to Sakura',
-        'Exported %s posts to Sakura',
-        $export_count,
-        'export_to_sakura'
-      ) . '</div>', $export_count );
-  }
-}
