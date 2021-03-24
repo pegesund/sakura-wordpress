@@ -784,7 +784,7 @@ class BulkExport {
       'cookies'     => array(),
     );
 
-    $sakura_server = apply_filters('sakura_update_server_address', 'http://localhost:8080');
+    $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
     $response = wp_safe_remote_request(sprintf('%s/api/addWCProducts', $sakura_server), $http_args);
 
     $countPosts = 0;
