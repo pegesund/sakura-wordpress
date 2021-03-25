@@ -113,7 +113,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -182,7 +182,7 @@ final class Sakura {
 	 *
 	 * @var string
 	 */
-	public $version = '1.0.1';
+	public $version = '1.0.2';
 
 #+END_SRC
 ** constructor of main class
@@ -431,7 +431,7 @@ Please note that only table and inline styles should be used in an email receipt
     /**
     * fetch articles from Sakura server
     */
-    public function articles($target) {
+    public function articles($source) {
         $query_args = array();
 
         $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
@@ -444,8 +444,8 @@ Please note that only table and inline styles should be used in an email receipt
         if (isset($history)) {
             $query_args['history'] = $history;
         }
-        if (isset($target)) {
-            $query_args['target'] = $target;
+        if (isset($source)) {
+            $query_args['source'] = $source;
         }
 
         $product = wc_get_product();
@@ -543,7 +543,9 @@ to override them and not use attributes such as =height=.
                             $price = esc_attr($article_obj->{'price'});
                             $currency = esc_attr($article_obj->{'currency'});
                             $id = esc_attr($article_obj->{'id'});
-                            $url = esc_attr($article_obj->{'url'});
+
+                            $linkKey = $article_obj->{'link_key'};
+                            $url = $sakura_server . '/api/widget/tracking/' . $linkKey . '/click';
                             $img = esc_attr($article_obj->{'photo'});
                             $from_network = $article_obj->{'from_network'};
                             $query_args = array();
@@ -555,32 +557,20 @@ to override them and not use attributes such as =height=.
                                 $query_args['sakura_network'] = $from_network;
                             }
 
-                            if (str_contains($url, '?')) {
-                                $url .= '&';
-                            } else {
-                                $url .= '?';
-                            }
-                            $url .= http_build_query($query_args);
-                            // $trackImg = $sakura_server . "/api/widget/trackingImg?event=view&to-article=" . $id;
-                            // if (!empty($fromSite)) {
-                            //     $trackImg = $trackImg . "&from-site=" . $fromSite;
-                            // }
-                            // if (!empty($fromArticle)) {
-                            //     $trackImg = $trackImg . "&from-article=" . $fromArticle;
-                            // }
-                            // if (!empty($from_network)) {
-                            //     $trackImg = $trackImg . "&from-network=" . $from_network;
-                            // }
+                            $trackImgURL = $sakura_server . '/api/widget/tracking/' . $linkKey . '/view';
 
                             ?>
                             <td>
-                            <a target="_blank" href="<?php echo $url ?>" title="<?php echo $desc ?>">
+                            <a target="_blank" href="<?php echo $url; ?>" title="<?php echo $desc ?>">
                             <img src="<?php echo $img ?>" style="max-height: 192px; max-width: 192px;"/></a>
                             <div style="text-align: center;font-family: Montserrat;" title="<?php echo $desc ?>"><b><?php echo $title ?></b></div>
                             <div style="text-align: center;" title="<?php echo $desc ?>">
                                 <div data-column="1" data-groupkey="0">
                             <div style="font-family: Montserrat;"><?php echo $price ?>&nbsp;<?php echo $currency ?></div>
                                 </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <img src="<?php echo $trackImgURL; ?>">
                             </div>
                             </td>
                             <?php
@@ -1493,14 +1483,14 @@ It should not be included in official environment.
 <?php
 /**
  * @package The development plugin for Sakura Network.
- * @version 1.0.1
+ * @version 1.0.2
  */
 /*
 Plugin Name: Sakura network internal development
 Plugin URI: https://www.sakura.eco/
 Description: This is just a plugin for development use only, to make us local development easy.
 Author: Sakura.eco
-Version: 1.0.1
+Version: 1.0.2
 Author URI: https://www.sakura.eco/
 */
 #+END_SRC
@@ -1684,7 +1674,7 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -1740,6 +1730,12 @@ If you encounter issues with the shop/category pages after an update, flush the 
 ** changelog
 #+BEGIN_SRC txt
 == Changelog ==
+
+= 1.0.2 - 2021-03-25 =
+
+**Sakura network**
+
+,* Include Sakura widget in the email receipt.
 
 = 1.0.1 - 2021-03-12 =
 

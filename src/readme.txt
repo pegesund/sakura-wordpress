@@ -4,7 +4,7 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -51,6 +51,12 @@ Automatic updates should work smoothly, but we still recommend you back up your 
 If you encounter issues with the shop/category pages after an update, flush the permalinks by going to WordPress > Settings > Permalinks and hitting “Save.” That should return things to normal.
 
 == Changelog ==
+
+= 1.0.2 - 2021-03-25 =
+
+**Sakura network**
+
+* Include Sakura widget in the email receipt.
 
 = 1.0.1 - 2021-03-12 =
 

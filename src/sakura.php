@@ -3,7 +3,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -50,7 +50,7 @@ final class Sakura {
    *
    * @var string
    */
-  public $version = '1.0.1';
+  public $version = '1.0.2';
   
   /**
    * Sakura Constructor.
@@ -233,7 +233,7 @@ final class Sakura {
   /**
   * fetch articles from Sakura server
   */
-  public function articles($target) {
+  public function articles($source) {
       $query_args = array();
   
       $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
@@ -246,8 +246,8 @@ final class Sakura {
       if (isset($history)) {
           $query_args['history'] = $history;
       }
-      if (isset($target)) {
-          $query_args['target'] = $target;
+      if (isset($source)) {
+          $query_args['source'] = $source;
       }
   
       $product = wc_get_product();
@@ -337,7 +337,9 @@ final class Sakura {
                           $price = esc_attr($article_obj->{'price'});
                           $currency = esc_attr($article_obj->{'currency'});
                           $id = esc_attr($article_obj->{'id'});
-                          $url = esc_attr($article_obj->{'url'});
+  
+                          $linkKey = $article_obj->{'link_key'};
+                          $url = $sakura_server . '/api/widget/tracking/' . $linkKey . '/click';
                           $img = esc_attr($article_obj->{'photo'});
                           $from_network = $article_obj->{'from_network'};
                           $query_args = array();
@@ -349,32 +351,20 @@ final class Sakura {
                               $query_args['sakura_network'] = $from_network;
                           }
   
-                          if (str_contains($url, '?')) {
-                              $url .= '&';
-                          } else {
-                              $url .= '?';
-                          }
-                          $url .= http_build_query($query_args);
-                          // $trackImg = $sakura_server . "/api/widget/trackingImg?event=view&to-article=" . $id;
-                          // if (!empty($fromSite)) {
-                          //     $trackImg = $trackImg . "&from-site=" . $fromSite;
-                          // }
-                          // if (!empty($fromArticle)) {
-                          //     $trackImg = $trackImg . "&from-article=" . $fromArticle;
-                          // }
-                          // if (!empty($from_network)) {
-                          //     $trackImg = $trackImg . "&from-network=" . $from_network;
-                          // }
+                          $trackImgURL = $sakura_server . '/api/widget/tracking/' . $linkKey . '/view';
   
                           ?>
                           <td>
-                          <a target="_blank" href="<?php echo $url ?>" title="<?php echo $desc ?>">
+                          <a target="_blank" href="<?php echo $url; ?>" title="<?php echo $desc ?>">
                           <img src="<?php echo $img ?>" style="max-height: 192px; max-width: 192px;"/></a>
                           <div style="text-align: center;font-family: Montserrat;" title="<?php echo $desc ?>"><b><?php echo $title ?></b></div>
                           <div style="text-align: center;" title="<?php echo $desc ?>">
                               <div data-column="1" data-groupkey="0">
                           <div style="font-family: Montserrat;"><?php echo $price ?>&nbsp;<?php echo $currency ?></div>
                               </div>
+                          </div>
+                          <div style="text-align: center;">
+                              <img src="<?php echo $trackImgURL; ?>">
                           </div>
                           </td>
                           <?php
