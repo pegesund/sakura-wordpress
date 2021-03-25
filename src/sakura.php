@@ -699,8 +699,16 @@ class SakuraNetwork {
   
   	add_settings_field(
   		'sakura_widget_key', // id
-  		'Sakura Widget key', // title
+  		'Sakura Widget Key', // title
   		array( $this, 'sakura_widget_key_callback' ), // callback
+  		'sakura-network-admin', // page
+  		'sakura_network_setting_section' // section
+    );
+    
+     	add_settings_field(
+  		'sakura_secret_key', // id
+  		'Sakura Secret Key', // title
+  		array( $this, 'sakura_secret_key_callback' ), // callback
   		'sakura-network-admin', // page
   		'sakura_network_setting_section' // section
   	);
@@ -713,6 +721,10 @@ class SakuraNetwork {
   
   	if ( isset( $input['sakura_widget_key'] ) ) {
   		$sanitary_values['sakura_widget_key'] = sanitize_text_field( $input['sakura_widget_key'] );
+    }
+
+    if ( isset( $input['sakura_secret_key'] ) ) {
+  		$sanitary_values['sakura_secret_key'] = sanitize_text_field( $input['sakura_secret_key'] );
   	}
   
   	return $sanitary_values;
@@ -724,6 +736,13 @@ class SakuraNetwork {
   	printf(
   		'<input class="regular-text" type="text" name="sakura_network_option[sakura_widget_key]" id="sakura_widget_key" value="%s">',
   		isset( $this->sakura_network_options['sakura_widget_key'] ) ? esc_attr( $this->sakura_network_options['sakura_widget_key']) : ''
+  	);
+  }
+
+  public function sakura_secret_key_callback() {
+  	printf(
+  		'<input class="regular-text" type="text" name="sakura_network_option[sakura_secret_key]" id="sakura_secret_key" value="%s">',
+  		isset( $this->sakura_network_options['sakura_secret_key'] ) ? esc_attr( $this->sakura_network_options['sakura_secret_key']) : ''
   	);
   }
   
@@ -757,12 +776,12 @@ class BulkExport {
     }
   
     $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
-    $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
-  
+
     $allProducts = array();
     $payload = array();
     $payload['token'] = 'demotoken';
-    $payload['sakura_widget_key'] = $sakura_widget_key;
+    $payload['sakura_widget_key'] = $sakura_network_options['sakura_widget_key'];;
+    $payload['sakura_secret_key'] = $sakura_network_options['sakura_secret_key'];
     $payload['currency'] = get_woocommerce_currency();
 
     foreach ( $post_ids as $post_id ) {
