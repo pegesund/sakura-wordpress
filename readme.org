@@ -14,7 +14,6 @@
   - [[#header][header]]
   - [[#prevent-data-leaks][Prevent Data Leaks]]
   - [[#define-sakura_plugin_file][define SAKURA_PLUGIN_FILE]]
-  - [[#check-if-woocommerce-is-active][Check if WooCommerce is active]]
 - [[#implementation-of-main-class][Implementation of main class]]
   - [[#class-definition][class definition]]
   - [[#version-and-construct-of-main-class][version and construct of main class]]
@@ -147,15 +146,6 @@ if ( ! defined( 'SAKURA_PLUGIN_FILE' ) ) {
 }
 #+END_SRC
 
-** Check if WooCommerce is active
-#+BEGIN_SRC php
-/**
- * Check if WooCommerce is active
- **/
-if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) )) {
-    exit;
-}
-#+END_SRC
 * Implementation of main class
 :PROPERTIES:
 :header-args: :noweb yes :tangle no :noweb-ref sakura-main-class
