@@ -34,6 +34,10 @@
   - [[#include-widget-in-email-receipt][include widget in Email receipt]]
     - [[#request-articles-from-sakura][request articles from Sakura]]
     - [[#render-articles-in-email-receipt][render articles in email receipt.]]
+  - [[#render-widget-in-cart][render widget in cart]]
+  - [[#render-widget-in-receipt-page][render widget in receipt page]]
+  - [[#render-widget-in-thank-you-page][render widget in thank you page]]
+  - [[#render-widget-in-place][render widget in place]]
   - [[#setup_block_options-in-js-side][setup_block_options in JS side]]
   - [[#get-owned-sakura-networks-based-on-sakura-widget-key][get owned Sakura networks based on Sakura widget key]]
   - [[#enqueue-js-files][enqueue js files]]
@@ -61,6 +65,9 @@
   - [[#section-info][section info]]
   - [[#callback-for-widget-key][callback for widget key]]
   - [[#callback-for-including-widget-in-email-receipt][callback for including widget in email receipt]]
+  - [[#callback-for-including-widget-in-cartshopping-basket][callback for including widget in cart(Shopping basket)]]
+  - [[#callback-for-including-widget-in-receipt-page][callback for including widget in receipt page]]
+  - [[#callback-for-including-widget-in-thank-you-page][callback for including widget in thank you page]]
   - [[#create-setting-page-if-admin][create setting page if admin]]
   - [[#how-to-retrive-setting-value][how to retrive setting value]]
 - [[#javascript-codes][Javascript codes]]
@@ -112,7 +119,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -172,7 +179,7 @@ final class Sakura {
 	 *
 	 * @var string
 	 */
-	public $version = '1.0.2';
+	public $version = '1.0.3';
 
 #+END_SRC
 ** constructor of main class
@@ -205,6 +212,10 @@ Please note that we add out =init= to the end of =init= action, to ensure that W
       add_action('enqueue_block_editor_assets', array( $this, 'setup_block_options'), 0);
       // we have to add it before default actions. @see https://github.com/woocommerce/woocommerce/blob/trunk/includes/class-wc-emails.php#L194
 		  add_action( 'woocommerce_email_footer' , array( $this, 'append_widget_in_email_receipt' ), 9);
+		  add_action( 'woocommerce_after_cart' , array( $this, 'render_widget_in_cart' ));
+		  add_action( 'woocommerce_cart_is_empty' , array( $this, 'render_widget_in_cart' ));
+		  add_action( 'woocommerce_thankyou' , array( $this, 'render_widget_in_thank_you' ));
+		  add_action( 'after_woocommerce_pay' , array( $this, 'render_widget_in_receipt_page' ));
 
       // a uniform interface to woocommerce events.
       add_action( 'woocommerce_new_order', function ($order_id) {
@@ -583,6 +594,87 @@ to override them and not use attributes such as =height=.
             </div>
         <?php
     }
+#+END_SRC
+
+** render widget in cart
+#+BEGIN_SRC php
+    /**
+    * render widget in cart
+    */
+    public function render_widget_in_cart() {
+        $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+        if (!isset ($sakura_network_options['sakura_include_in_cart']) ||
+            !$sakura_network_options['sakura_include_in_cart']) {
+            return;
+        }
+        $this->render_widget_in_place();
+    }
+#+END_SRC
+
+** render widget in receipt page
+#+BEGIN_SRC php
+    /**
+    * render widget in receipt page
+    */
+    public function render_widget_in_receipt_page() {
+        $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+        if (!isset ($sakura_network_options['sakura_include_in_receipt']) ||
+            !$sakura_network_options['sakura_include_in_receipt']) {
+            return;
+        }
+        $this->render_widget_in_place();
+    }
+#+END_SRC
+
+** render widget in thank you page
+#+BEGIN_SRC php
+    /**
+    * render widget in thank you page
+    */
+    public function render_widget_in_thank_you() {
+        $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+        if (!isset ($sakura_network_options['sakura_include_in_thank_you']) ||
+            !$sakura_network_options['sakura_include_in_thank_you']) {
+            return;
+        }
+        $this->render_widget_in_place();
+    }
+#+END_SRC
+
+** render widget in place
+#+BEGIN_SRC php
+    /**
+    * render widget in place
+    */
+    public function render_widget_in_place() {
+        do_action('sakura_record_activity', 'render_widget_in_place');
+        $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+        $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+
+        $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+        $url = $sakura_server . '/widget/' . $sakura_widget_key;
+
+        $history = SC()->sakura_history_in_cookie();
+        if (isset($history)) {
+            $query_args['history'] = $history;
+        }
+
+        $product = wc_get_product();
+        if ($product) {
+            $query_args['id'] = $product->get_id();
+            $query_args['sku'] = $product->get_sku();
+        }
+        if (sizeof($query_args) > 0) {
+            $url = $url . '?' . http_build_query($query_args);
+        }
+
+        ?>
+            <h3> OTHER CUSTOMERS ALSO LIKE </h3>
+            <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
+        <?php
+
+    }
+
 #+END_SRC
 
 ** setup_block_options in JS side
@@ -1065,18 +1157,54 @@ class SakuraNetwork {
 			'sakura-network-admin', // page
 			'sakura_network_setting_section' // section
 		);
+
+		add_settings_field(
+			'sakura_include_in_cart', // id
+			'Include widget in cart page', // title
+			array( $this, 'sakura_include_in_cart_callback' ), // callback
+			'sakura-network-admin', // page
+			'sakura_network_setting_section' // section
+		);
+
+		add_settings_field(
+			'sakura_include_in_receipt', // id
+			'Include widget in receipt page', // title
+			array( $this, 'sakura_include_in_receipt_callback' ), // callback
+			'sakura-network-admin', // page
+			'sakura_network_setting_section' // section
+		);
+
+		add_settings_field(
+			'sakura_include_in_thank_you', // id
+			'Include widget in thank you page', // title
+			array( $this, 'sakura_include_in_thank_you_callback' ), // callback
+			'sakura-network-admin', // page
+			'sakura_network_setting_section' // section
+		);
 	}
 #+END_SRC
 ** sanitize_callback
 #+BEGIN_SRC php
 	public function sakura_network_sanitize($input) {
 		$sanitary_values = array();
+		if ( isset( $input['sakura_widget_key'] ) ) {
+			$sanitary_values['sakura_widget_key'] = sanitize_text_field( $input['sakura_widget_key'] );
+		}
+
 		if ( isset( $input['sakura_email_receipt'] ) ) {
 			$sanitary_values['sakura_email_receipt'] = sanitize_text_field( $input['sakura_email_receipt'] );
 		}
 
-		if ( isset( $input['sakura_widget_key'] ) ) {
-			$sanitary_values['sakura_widget_key'] = sanitize_text_field( $input['sakura_widget_key'] );
+		if ( isset( $input['sakura_include_in_cart'] ) ) {
+			$sanitary_values['sakura_include_in_cart'] = sanitize_text_field( $input['sakura_include_in_cart'] );
+		}
+
+		if ( isset( $input['sakura_include_in_receipt'] ) ) {
+			$sanitary_values['sakura_include_in_receipt'] = sanitize_text_field( $input['sakura_include_in_receipt'] );
+		}
+
+		if ( isset( $input['sakura_include_in_thank_you'] ) ) {
+			$sanitary_values['sakura_include_in_thank_you'] = sanitize_text_field( $input['sakura_include_in_thank_you'] );
 		}
 
 		return $sanitary_values;
@@ -1108,6 +1236,48 @@ class SakuraNetwork {
         $html = '<input type="checkbox" id="sakura_email_receipt" name="sakura_network_option[sakura_email_receipt]" value="1"'
             . checked( 1, $sakura_email_receipt, false ) . '/>';
         $html .= '<label for="sakura_email_receipt_key">Include widget in new order email receipt</label>';
+
+        printf($html);
+    }
+#+END_SRC
+** callback for including widget in cart(Shopping basket)
+#+BEGIN_SRC php
+    public function sakura_include_in_cart_callback() {
+        $sakura_include_in_cart = false;
+        if (isset( $this->sakura_network_options['sakura_include_in_cart'] )) {
+            $sakura_include_in_cart = $this->sakura_network_options['sakura_include_in_cart'];
+        }
+        $html = '<input type="checkbox" id="sakura_include_in_cart" name="sakura_network_option[sakura_include_in_cart]" value="1"'
+            . checked( 1, $sakura_include_in_cart, false ) . '/>';
+        $html .= '<label for="sakura_include_in_cart_key">Include widget in cart page</label>';
+
+        printf($html);
+    }
+#+END_SRC
+** callback for including widget in receipt page
+#+BEGIN_SRC php
+    public function sakura_include_in_receipt_callback() {
+        $sakura_include_in_receipt = false;
+        if (isset( $this->sakura_network_options['sakura_include_in_receipt'] )) {
+            $sakura_include_in_receipt = $this->sakura_network_options['sakura_include_in_receipt'];
+        }
+        $html = '<input type="checkbox" id="sakura_include_in_receipt" name="sakura_network_option[sakura_include_in_receipt]" value="1"'
+            . checked( 1, $sakura_include_in_receipt, false ) . '/>';
+        $html .= '<label for="sakura_include_in_receipt_key">Include widget in receipt page</label>';
+
+        printf($html);
+    }
+#+END_SRC
+** callback for including widget in thank you page
+#+BEGIN_SRC php
+    public function sakura_include_in_thank_you_callback() {
+        $sakura_include_in_thank_you = false;
+        if (isset( $this->sakura_network_options['sakura_include_in_thank_you'] )) {
+            $sakura_include_in_thank_you = $this->sakura_network_options['sakura_include_in_thank_you'];
+        }
+        $html = '<input type="checkbox" id="sakura_include_in_thank_you" name="sakura_network_option[sakura_include_in_thank_you]" value="1"'
+            . checked( 1, $sakura_include_in_thank_you, false ) . '/>';
+        $html .= '<label for="sakura_include_in_thank_you_key">Include widget in thank you page</label>';
 
         printf($html);
     }
@@ -1473,14 +1643,14 @@ It should not be included in official environment.
 <?php
 /**
  * @package The development plugin for Sakura Network.
- * @version 1.0.2
+ * @version 1.0.3
  */
 /*
 Plugin Name: Sakura network internal development
 Plugin URI: https://www.sakura.eco/
 Description: This is just a plugin for development use only, to make us local development easy.
 Author: Sakura.eco
-Version: 1.0.2
+Version: 1.0.3
 Author URI: https://www.sakura.eco/
 */
 #+END_SRC
@@ -1664,7 +1834,7 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -1718,6 +1888,12 @@ If you encounter issues with the shop/category pages after an update, flush the 
 ** changelog
 #+BEGIN_SRC txt
 == Changelog ==
+
+= 1.0.3 - 2021-03-25 =
+
+**Sakura network**
+
+,* Add support to include Sakura widget in Shopping basket/receipt page /thank you page.
 
 = 1.0.2 - 2021-03-25 =
 
@@ -1802,8 +1978,8 @@ scp sakura.zip petter:/srv/public/download/wordpress/
 #+RESULTS:
 
 * Upload to WordPress.org svn repository
-[[https://wordpress.org/plugins/sakura-network/][Sakura Network in WordPress]]
 ** References
+- [[https://wordpress.org/plugins/sakura-network/][Sakura Network in WordPress]]
 - [[https://plugins.svn.wordpress.org/sakura-network][SVN URL]]
 - [[https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/][Using Subversion with the WordPress Plugin Directory]]
 - [[https://developer.wordpress.org/plugins/wordpress-org/plugin-developer-faq/][FAQ]]
