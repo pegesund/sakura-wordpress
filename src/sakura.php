@@ -763,10 +763,24 @@ class BulkExport {
     $payload = array();
     $payload['token'] = 'demotoken';
     $payload['sakura_widget_key'] = $sakura_widget_key;
-    
+    $payload['currency'] = get_woocommerce_currency();
+
     foreach ( $post_ids as $post_id ) {
       $prod = wc_get_product( $post_id );
-      array_push($allProducts, $prod->get_data());
+
+      $image_url = wp_get_attachment_image_src( 
+        get_post_thumbnail_id( $post_id ), 'single-post-thumbnail' );
+      $permalink = $prod->get_permalink();
+
+      $prod_m = $prod->get_data();
+      
+      if (is_array($image_url))
+        $prod_m['img_url'] = $image_url[0];
+      else
+        $prod_m['img_url'] = '';
+      $prod_m['permalink'] = $permalink;
+
+      array_push($allProducts, $prod_m);
     }
     $payload['all_products'] = $allProducts;
   
