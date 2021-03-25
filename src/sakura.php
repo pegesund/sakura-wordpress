@@ -768,6 +768,18 @@ class BulkExport {
     foreach ( $post_ids as $post_id ) {
       $prod = wc_get_product( $post_id );
 
+      // tags
+      $terms = get_the_terms( $post_id, 'product_tag' );
+      $termsString = '';
+
+      if (is_array($terms))
+      {
+        foreach ($terms as $tag) {
+          $termsString = $termsString . $tag->to_array()['name'] . ', ';
+        }
+        $termsString = substr($termsString, 0, strlen($termsString) - 2);
+      }
+
       $image_url = wp_get_attachment_image_src( 
         get_post_thumbnail_id( $post_id ), 'single-post-thumbnail' );
       $permalink = $prod->get_permalink();
@@ -779,6 +791,7 @@ class BulkExport {
       else
         $prod_m['img_url'] = '';
       $prod_m['permalink'] = $permalink;
+      $prod_m['tags'] = $termsString;
 
       array_push($allProducts, $prod_m);
     }
@@ -832,5 +845,3 @@ if ( is_admin() )
   $sakura_network = new SakuraNetwork();
   $bulk_export = new BulkExport();
 }
-
- 
