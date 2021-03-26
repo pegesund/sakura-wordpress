@@ -4,28 +4,26 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.1
+Stable tag: 1.0.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Sakura networks for Woocommerce sites
+Sales is all about traffic to your website - with Sakura you will access all the combined traffic from your cooperating network.
 
 == Description ==
 
+Start cooperating now and turn your website into a networking and distributing global marketplace, using sakura one-click discovery. It is really easy to share traffic. Just register, upload your profile and products and find a suitable network to start cooperating. You can cooperate locally and globally to attract new customers and even more relevant traffic world wide. It is free to join as a member, and also to build your own network.
+
 - **Register** to become a member or create your own network in [Sakura.eco](https://www.sakura.eco).
-- **Install** the Sakura networks plugin and add the discovery on your website
+- **Install** the Sakura networks plugin and add the discovery on your website and import products /articles from your website.
 
-This is one of our networks discovery in [Sakura.eco](https://www.sakura.eco).
+You can discover networks and other members in [Sakura.eco](https://www.sakura.eco) and request to become a member/ or start your own network cooperating on traffic.
 
-They share their traffic within their network in this discovery.
+We offer you a dashboard with real time statistics making it easy to track traffic and orders deriving from participating in Networks.
 
-You can discover networks in [Sakura.eco](https://www.sakura.eco) and request to become a member.
+You decide which products you want to publish in the discovery and share with your network, and you can track their views and all orders from each network you are in.
 
-Dashboard with statistics making it easy to track traffic and orders deriving from participating in Networks.
-
-You decide which products you want to publish in the discovery and you can track their views and orders from network.
-
-[Sakura.eco](https://www.sakura.eco) has their own marketplace, where all our members can be available, it is optional to join our main Sakura network.
+[Sakura.eco](https://www.sakura.eco) has their own discovery, where all our members can be available, it is optional to join our main Sakura network discovery.
 
 == Installation ==
 
@@ -51,6 +49,18 @@ Automatic updates should work smoothly, but we still recommend you back up your 
 If you encounter issues with the shop/category pages after an update, flush the permalinks by going to WordPress > Settings > Permalinks and hitting “Save.” That should return things to normal.
 
 == Changelog ==
+
+= 1.0.3 - 2021-03-25 =
+
+**Sakura network**
+
+* Add support to include Sakura widget in Shopping basket/receipt page /thank you page.
+
+= 1.0.2 - 2021-03-25 =
+
+**Sakura network**
+
+* Include Sakura widget in the email receipt.
 
 = 1.0.1 - 2021-03-12 =
 

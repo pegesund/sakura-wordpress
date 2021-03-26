@@ -3,7 +3,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.1
+ * Version: 1.0.3
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -30,13 +30,6 @@ if ( ! defined( 'SAKURA_PLUGIN_FILE' ) ) {
 }
 
 /**
- * Check if WooCommerce is active
- **/
-if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) )) {
-    exit;
-}
-
-/**
  * Main Sakura Class.
  *
  * @class Sakura
@@ -50,7 +43,7 @@ final class Sakura {
    *
    * @var string
    */
-  public $version = '1.0.1';
+  public $version = '1.0.3';
   
   /**
    * Sakura Constructor.
@@ -72,6 +65,12 @@ final class Sakura {
   		 add_filter( 'plugin_action_links_' . SAKURA_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
        add_action('wp_enqueue_scripts', array( $this, 'enqueue_scripts'), 0);
        add_action('enqueue_block_editor_assets', array( $this, 'setup_block_options'), 0);
+       // we have to add it before default actions. @see https://github.com/woocommerce/woocommerce/blob/trunk/includes/class-wc-emails.php#L194
+  		 add_action( 'woocommerce_email_footer' , array( $this, 'append_widget_in_email_receipt' ), 9);
+  		 add_action( 'woocommerce_after_cart' , array( $this, 'render_widget_in_cart' ));
+  		 add_action( 'woocommerce_cart_is_empty' , array( $this, 'render_widget_in_cart' ));
+  		 add_action( 'woocommerce_thankyou' , array( $this, 'render_widget_in_thank_you' ));
+  		 add_action( 'after_woocommerce_pay' , array( $this, 'render_widget_in_receipt_page' ));
   
        // a uniform interface to woocommerce events.
        add_action( 'woocommerce_new_order', function ($order_id) {
@@ -227,6 +226,228 @@ final class Sakura {
       {
           do_action('sakura_record_activity', sprintf('notify sakura for payment complete: #%d', $order_id));
       }
+  
+  /**
+  * fetch articles from Sakura server
+  */
+  public function articles($source) {
+      $query_args = array();
+  
+      $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+  
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+      $url = $sakura_server . '/api/widget/articles/' . $sakura_widget_key;
+  
+      $history = SC()->sakura_history_in_cookie();
+      if (isset($history)) {
+          $query_args['history'] = $history;
+      }
+      if (isset($source)) {
+          $query_args['source'] = $source;
+      }
+  
+      $product = wc_get_product();
+      if ($product) {
+          $query_args['id'] = $product->get_id();
+          $query_args['sku'] = $product->get_sku();
+      }
+      if (sizeof($query_args) > 0) {
+          $url = $url . '?' . http_build_query($query_args);
+      }
+      $http_args = array(
+          'method'      => 'GET',
+          'timeout'     => MINUTE_IN_SECONDS,
+          'redirection' => 0,
+          'httpversion' => '1.0',
+          'blocking'    => true,
+          'user-agent'  => sprintf('WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version']),
+          'headers'     => array(
+              'Content-Type' => 'application/json',
+          ));
+      $response = wp_safe_remote_request($url);
+      do_action('sakura_record_activity', $response);
+      if ($response instanceof WP_Error) {
+          return (object)array('status' => 'error',
+                               'message' => 'Failed to get articles');
+      }
+      return json_decode($response['body']);
+  }
+  /**
+  * apend widget in email receipt
+  */
+  public function append_widget_in_email_receipt($email) {
+      $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+      if (!isset ($sakura_network_options['sakura_email_receipt']) ||
+          !$sakura_network_options['sakura_email_receipt']) {
+          return;
+      }
+      do_action('sakura_record_activity', 'append_widget_in_email_receipt');
+  
+      $articles = $this->articles('email');
+      if ($articles->{'status'} != 'success' ||
+          empty($articles->{'articles'}))
+      {
+          return;
+      }
+      $fromSite = $articles->{'fromSite'};
+      $fromArticle = $articles->{'fromArticle'};
+      $sakura_from = '';
+      if (!empty($fromSite)) {
+          $sakura_from = $fromSite . ":";
+      }
+      if (!empty($fromArticle)) {
+          if (empty($sakura_from)) {
+              $sakura_from = ':';
+          }
+          $sakura_from .= $fromArticle;
+      }
+  
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+      ?>
+          <br>
+          <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700&display=swap&subset=latin-ext" rel="stylesheet">
+          <b style='display: block; font-family: Montserrat, "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif; font-size: 18px; font-weight: bold; line-height: 130%; margin: 0 0 5px; text-align: left;'>OTHER CUSTOMERS ALSO LIKE</b>
+          <span style='font-family: Montserrat;'>
+          Discovery Name is a digital cooperation of online offering made for you to give you an even more relevant and exciting discovery online. </span>
+          <br>
+          <span style='font-family: Montserrat;'>
+          Below you will find even more products that global customers also views, visits and purchases. On behalf of Discovery Name, we thank You for your purchase and invite you to discover even more products by clicking on one of the assets below. </span>
+  
+          <br>
+          <div style="background:#f6f6f4;background-color:#f6f6f4; padding: 5px; width:100%">
+              <table style="border-collapse: collapse; width: 100%; height: 36px; background-color: #f6f6f4; " border="0">
+              <tbody>
+                  <tr style="width:100%; height: 18px;">
+              <td style="padding-top: 5px;padding-bottom: 5px;width: 100%; height: 18px;font-family: Montserrat;">&nbsp; &nbsp; DISCOVERY IN THE BLUE</td>
+                  </tr>
+                  <tr style="width:100%; height: 18px;">
+              <td style="width: 100%; height: 18px;">
+                  <div style="position: relative; width: 100%; overflow-x: scroll; overflow-y: hidden; height: 280px;">
+                  <table style="border-collapse: collapse; margin-left: auto; margin-right: auto; position: absolute; top: 0; left: 0; right: 0; bottom: 0; " border="0">
+                      <tbody>
+                  <tr>
+                  <?php
+                      foreach( $articles->{'articles'} as $article_obj ) {
+                          $title = esc_attr($article_obj->{'title_i18n'}->{'en'});
+                          $desc = esc_attr($article_obj->{'description_i18n'}->{'en'});
+                          $price = esc_attr($article_obj->{'price'});
+                          $currency = esc_attr($article_obj->{'currency'});
+                          $id = esc_attr($article_obj->{'id'});
+  
+                          $linkKey = $article_obj->{'link_key'};
+                          $url = $sakura_server . '/api/widget/tracking/' . $linkKey . '/click';
+                          $img = esc_attr($article_obj->{'photo'});
+                          $from_network = $article_obj->{'from_network'};
+                          $query_args = array();
+                          if (!empty($sakura_from)) {
+                              $query_args['sakura_from'] = $sakura_from;
+                          }
+                          $query_args['sakura_to'] = $id;
+                          if (!empty($from_network)) {
+                              $query_args['sakura_network'] = $from_network;
+                          }
+  
+                          $trackImgURL = $sakura_server . '/api/widget/tracking/' . $linkKey . '/view';
+  
+                          ?>
+                          <td>
+                          <a target="_blank" href="<?php echo $url; ?>" title="<?php echo $desc ?>">
+                          <img src="<?php echo $img ?>" style="max-height: 192px; max-width: 192px;"/></a>
+                          <div style="text-align: center;font-family: Montserrat;" title="<?php echo $desc ?>"><b><?php echo $title ?></b></div>
+                          <div style="text-align: center;" title="<?php echo $desc ?>">
+                              <div data-column="1" data-groupkey="0">
+                          <div style="font-family: Montserrat;"><?php echo $price ?>&nbsp;<?php echo $currency ?></div>
+                              </div>
+                          </div>
+                          <div style="text-align: center;">
+                              <img src="<?php echo $trackImgURL; ?>">
+                          </div>
+                          </td>
+                          <?php
+                      }
+                  ?>
+                  </tr>
+                      </tbody>
+                  </table>
+                  </div>
+              </td>
+                  </tr>
+              </tbody>
+              </table>
+              <div style="margin: 0; float: right;">
+                  <span style="color: rgb(12, 46, 24); font-family: Montserrat; height:100%;">Networked by</span>
+                  <a href="http://sakura.eco" target="_blank">
+                  <img style="height: 15px; vertical-align: top;" src="https://www.sakura.eco/img/logo-2021-1.png"/>
+                  </a>
+              </div>
+          </div>
+      <?php
+  }
+  /**
+  * render widget in cart
+  */
+  public function render_widget_in_cart() {
+      $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+      if (!isset ($sakura_network_options['sakura_include_in_cart']) ||
+          !$sakura_network_options['sakura_include_in_cart']) {
+          return;
+      }
+      $this->render_widget_in_place();
+  }
+  /**
+  * render widget in receipt page
+  */
+  public function render_widget_in_receipt_page() {
+      $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+      if (!isset ($sakura_network_options['sakura_include_in_receipt']) ||
+          !$sakura_network_options['sakura_include_in_receipt']) {
+          return;
+      }
+      $this->render_widget_in_place();
+  }
+  /**
+  * render widget in thank you page
+  */
+  public function render_widget_in_thank_you() {
+      $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+      if (!isset ($sakura_network_options['sakura_include_in_thank_you']) ||
+          !$sakura_network_options['sakura_include_in_thank_you']) {
+          return;
+      }
+      $this->render_widget_in_place();
+  }
+  /**
+  * render widget in place
+  */
+  public function render_widget_in_place() {
+      do_action('sakura_record_activity', 'render_widget_in_place');
+      $sakura_network_options = get_option( 'sakura_network_option' ); // Array of All Options
+      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
+  
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+      $url = $sakura_server . '/widget/' . $sakura_widget_key;
+  
+      $history = SC()->sakura_history_in_cookie();
+      if (isset($history)) {
+          $query_args['history'] = $history;
+      }
+  
+      $product = wc_get_product();
+      if ($product) {
+          $query_args['id'] = $product->get_id();
+          $query_args['sku'] = $product->get_sku();
+      }
+      if (sizeof($query_args) > 0) {
+          $url = $url . '?' . http_build_query($query_args);
+      }
+  
+      ?>
+          <h3> OTHER CUSTOMERS ALSO LIKE </h3>
+          <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
+      <?php
+  
+  }
   
   /**
   * Initialize networks data for current site.
@@ -712,19 +933,63 @@ class SakuraNetwork {
   		'sakura-network-admin', // page
   		'sakura_network_setting_section' // section
   	);
+  
+  	add_settings_field(
+  		'sakura_email_receipt', // id
+  		'Include widget in new order email receipt', // title
+  		array( $this, 'sakura_email_receipt_callback' ), // callback
+  		'sakura-network-admin', // page
+  		'sakura_network_setting_section' // section
+  	);
+  
+  	add_settings_field(
+  		'sakura_include_in_cart', // id
+  		'Include widget in cart page', // title
+  		array( $this, 'sakura_include_in_cart_callback' ), // callback
+  		'sakura-network-admin', // page
+  		'sakura_network_setting_section' // section
+  	);
+  
+  	add_settings_field(
+  		'sakura_include_in_receipt', // id
+  		'Include widget in receipt page', // title
+  		array( $this, 'sakura_include_in_receipt_callback' ), // callback
+  		'sakura-network-admin', // page
+  		'sakura_network_setting_section' // section
+  	);
+  
+  	add_settings_field(
+  		'sakura_include_in_thank_you', // id
+  		'Include widget in thank you page', // title
+  		array( $this, 'sakura_include_in_thank_you_callback' ), // callback
+  		'sakura-network-admin', // page
+  		'sakura_network_setting_section' // section
+  	);
   }
   public function sakura_network_sanitize($input) {
   	$sanitary_values = array();
-  	if ( isset( $input['sakura_company_id'] ) ) {
-  		$sanitary_values['sakura_company_id'] = sanitize_text_field( $input['sakura_company_id'] );
-  	}
-  
   	if ( isset( $input['sakura_widget_key'] ) ) {
   		$sanitary_values['sakura_widget_key'] = sanitize_text_field( $input['sakura_widget_key'] );
     }
 
     if ( isset( $input['sakura_secret_key'] ) ) {
   		$sanitary_values['sakura_secret_key'] = sanitize_text_field( $input['sakura_secret_key'] );
+  	}
+  
+  	if ( isset( $input['sakura_email_receipt'] ) ) {
+  		$sanitary_values['sakura_email_receipt'] = sanitize_text_field( $input['sakura_email_receipt'] );
+  	}
+  
+  	if ( isset( $input['sakura_include_in_cart'] ) ) {
+  		$sanitary_values['sakura_include_in_cart'] = sanitize_text_field( $input['sakura_include_in_cart'] );
+  	}
+  
+  	if ( isset( $input['sakura_include_in_receipt'] ) ) {
+  		$sanitary_values['sakura_include_in_receipt'] = sanitize_text_field( $input['sakura_include_in_receipt'] );
+  	}
+  
+  	if ( isset( $input['sakura_include_in_thank_you'] ) ) {
+  		$sanitary_values['sakura_include_in_thank_you'] = sanitize_text_field( $input['sakura_include_in_thank_you'] );
   	}
   
   	return $sanitary_values;
@@ -746,6 +1011,50 @@ class SakuraNetwork {
   	);
   }
   
+  public function sakura_email_receipt_callback() {
+    $sakura_email_receipt = false;
+    if (isset( $this->sakura_network_options['sakura_email_receipt'] )) {
+        $sakura_email_receipt = $this->sakura_network_options['sakura_email_receipt'];
+    }
+    $html = '<input type="checkbox" id="sakura_email_receipt" name="sakura_network_option[sakura_email_receipt]" value="1"'
+        . checked( 1, $sakura_email_receipt, false ) . '/>';
+    $html .= '<label for="sakura_email_receipt_key">Include widget in new order email receipt</label>';
+
+    printf($html);
+}
+  public function sakura_include_in_cart_callback() {
+      $sakura_include_in_cart = false;
+      if (isset( $this->sakura_network_options['sakura_include_in_cart'] )) {
+          $sakura_include_in_cart = $this->sakura_network_options['sakura_include_in_cart'];
+      }
+      $html = '<input type="checkbox" id="sakura_include_in_cart" name="sakura_network_option[sakura_include_in_cart]" value="1"'
+          . checked( 1, $sakura_include_in_cart, false ) . '/>';
+      $html .= '<label for="sakura_include_in_cart_key">Include widget in cart page</label>';
+
+      printf($html);
+  }
+  public function sakura_include_in_receipt_callback() {
+      $sakura_include_in_receipt = false;
+      if (isset( $this->sakura_network_options['sakura_include_in_receipt'] )) {
+          $sakura_include_in_receipt = $this->sakura_network_options['sakura_include_in_receipt'];
+      }
+      $html = '<input type="checkbox" id="sakura_include_in_receipt" name="sakura_network_option[sakura_include_in_receipt]" value="1"'
+          . checked( 1, $sakura_include_in_receipt, false ) . '/>';
+      $html .= '<label for="sakura_include_in_receipt_key">Include widget in receipt page</label>';
+
+      printf($html);
+  }
+  public function sakura_include_in_thank_you_callback() {
+      $sakura_include_in_thank_you = false;
+      if (isset( $this->sakura_network_options['sakura_include_in_thank_you'] )) {
+          $sakura_include_in_thank_you = $this->sakura_network_options['sakura_include_in_thank_you'];
+      }
+      $html = '<input type="checkbox" id="sakura_include_in_thank_you" name="sakura_network_option[sakura_include_in_thank_you]" value="1"'
+          . checked( 1, $sakura_include_in_thank_you, false ) . '/>';
+      $html .= '<label for="sakura_include_in_thank_you_key">Include widget in thank you page</label>';
+
+      printf($html);
+  }
 }
 
 add_filter( 'http_request_args', function ( $args ) {
