@@ -183,7 +183,7 @@ final class Sakura {
                   $product    = $item->get_product();
                   $payload = array(
                       'event' => 'purchase',
-                      'product-id' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
+                      'pid' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
                       'sakura-widget-key' => $sakura_widget_key,
                       'sku' => $product->get_sku(),
                       'amount' => $item->get_quantity(),
@@ -249,7 +249,7 @@ final class Sakura {
   
       $product = wc_get_product();
       if ($product) {
-          $query_args['id'] = $product->get_id();
+          $query_args['pid'] = $product->get_id();
           $query_args['sku'] = $product->get_sku();
       }
       if (sizeof($query_args) > 0) {
@@ -435,7 +435,7 @@ final class Sakura {
   
       $product = wc_get_product();
       if ($product) {
-          $query_args['id'] = $product->get_id();
+          $query_args['pid'] = $product->get_id();
           $query_args['sku'] = $product->get_sku();
       }
       if (sizeof($query_args) > 0) {
@@ -464,11 +464,13 @@ final class Sakura {
   */
   public function networks() {
       $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
-      $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
-      if (!isset ($sakura_widget_key)) {
+  
+      $sakura_secret_key = $sakura_network_options['sakura_secret_key']; // Sakura Secret key
+      if (!isset ($sakura_secret_key)) {
           return (object)array('status' => 'error',
-                               'message' => 'Please setup widgetKey for Sakura network.');
+                               'message' => 'Please setup secret Key for Sakura network.');
       }
+  
       $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
       $http_args = array(
           'method'      => 'GET',
@@ -480,7 +482,7 @@ final class Sakura {
           'headers'     => array(
               'Content-Type' => 'application/json',
           ));
-      $response = wp_safe_remote_request(sprintf('%s/api/widget/networks/%s', $sakura_server, $sakura_widget_key), $http_args);
+      $response = wp_safe_remote_request(sprintf('%s/api/widget/networks?secretKey=%s', $sakura_server, $sakura_secret_key), $http_args);
       do_action('sakura_record_activity', $response);
       if ($response instanceof WP_Error) {
           return (object)array('status' => 'error',
@@ -638,7 +640,7 @@ final class Sakura {
       }
       $product = wc_get_product();
       if ($product) {
-          $query_args['id'] = $product->get_id();
+          $query_args['pid'] = $product->get_id();
           $query_args['sku'] = $product->get_sku();
       }
       if (sizeof($query_args) > 0) {
@@ -755,7 +757,7 @@ class Sakura_widget extends WP_Widget {
   
       $product = wc_get_product();
       if ($product) {
-          $query_args['id'] = $product->get_id();
+          $query_args['pid'] = $product->get_id();
           $query_args['sku'] = $product->get_sku();
       }
       if (sizeof($query_args) > 0) {
