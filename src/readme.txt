@@ -50,11 +50,12 @@ If you encounter issues with the shop/category pages after an update, flush the 
 
 == Changelog ==
 
-= 1.0.3 - 2021-03-25 =
+= 1.0.3 - 2021-03-26 =
 
 **Sakura network**
 
 * Add support to include Sakura widget in Shopping basket/receipt page /thank you page.
+* Add a simple support to import products into sakura network.
 
 = 1.0.2 - 2021-03-25 =
 
