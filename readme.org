@@ -38,6 +38,7 @@
   - [[#render-widget-in-receipt-page][render widget in receipt page]]
   - [[#render-widget-in-thank-you-page][render widget in thank you page]]
   - [[#render-widget-in-place][render widget in place]]
+  - [[#update-stock-status][update stock status]]
   - [[#setup_block_options-in-js-side][setup_block_options in JS side]]
   - [[#get-owned-sakura-networks-based-on-sakura-widget-key][get owned Sakura networks based on Sakura widget key]]
   - [[#enqueue-js-files][enqueue js files]]
@@ -127,7 +128,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -187,7 +188,7 @@ final class Sakura {
 	 *
 	 * @var string
 	 */
-	public $version = '1.0.3';
+	public $version = '1.0.4';
 
 #+END_SRC
 ** constructor of main class
@@ -224,6 +225,10 @@ Please note that we add out =init= to the end of =init= action, to ensure that W
 		  add_action( 'woocommerce_cart_is_empty' , array( $this, 'render_widget_in_cart' ));
 		  add_action( 'woocommerce_thankyou' , array( $this, 'render_widget_in_thank_you' ));
 		  add_action( 'after_woocommerce_pay' , array( $this, 'render_widget_in_receipt_page' ));
+		  add_action( 'woocommerce_product_set_stock_status' , function ($product_id) {
+          do_action('sakura_record_activity', "try to sync product data");
+          return $this->enqueue_action('update_stock_status', $product_id);
+      });
 
       // a uniform interface to woocommerce events.
       add_action( 'woocommerce_new_order', function ($order_id) {
@@ -344,19 +349,22 @@ The idea is from the web hooks mechanism of WooCommerce.
     * Process action
     */
     public function execute_delayed_queue() {
-          switch ($this->current_action)
-    {
-                    case 'woocommerce_new_order':
-        $this->new_order($this->current_action_params);
-      break;
-    case 'woocommerce_add_to_cart':
-        $this->add_to_cart($this->current_action_params);
-    break;
-    case 'woocommerce_pre_payment_complete':
-        $this->payment_complete = $this->current_action_params;
-        break;
+        switch ($this->current_action)
+        {
+        case 'woocommerce_new_order':
+            $this->new_order($this->current_action_params);
+            break;
+        case 'woocommerce_add_to_cart':
+            $this->add_to_cart($this->current_action_params);
+            break;
+        case 'woocommerce_pre_payment_complete':
+            $this->payment_complete = $this->current_action_params;
+            break;
+        case 'update_stock_status':
+            $this->update_stock_status($this->current_action_params);
+            break;
+        }
     }
-                         }
 
 #+END_SRC
 
@@ -681,6 +689,55 @@ to override them and not use attributes such as =height=.
             <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
         <?php
 
+    }
+
+#+END_SRC
+
+** update stock status
+To avoid repeating updating stock status, a local cache will be used.
+#+BEGIN_SRC php :noweb-ref sakura-main-vars
+   public $stock_status_array = null;
+#+END_SRC
+
+
+#+BEGIN_SRC php
+    /**
+    * render widget in place
+    */
+    public function update_stock_status($product_id) {
+        $product = wc_get_product( $product_id );
+        $status = $product->get_stock_status();
+        if (isset($stock_status_array[$product_id]) &&
+            // If stock status keep unchanged, just return.
+            $stock_status_array[$product_id] == $status) {
+            return;
+        }
+        $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+
+        $sakura_secret_key = $sakura_network_options['sakura_secret_key']; // Sakura Secret key
+        if (!isset ($sakura_secret_key)) {
+            do_action('sakura_record_activity', 'Failed to update stock status becuase of empty secret key');
+            return;
+        }
+        $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+        $http_args = array(
+            'method'      => 'GET',
+            'timeout'     => MINUTE_IN_SECONDS,
+            'redirection' => 0,
+            'httpversion' => '1.0',
+            'blocking'    => true,
+            'user-agent'  => sprintf('WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version']),
+            'headers'     => array(
+                'Content-Type' => 'application/json',
+            ));
+        $response = wp_safe_remote_request(sprintf('%s/api/widget/updateStockStatus?secretKey=%s&pid=%s&sku=%s&stock_status=%s',
+                                                   $sakura_server,
+                                                   $sakura_secret_key,
+                                                   $product_id,
+                                                   $product->get_sku(),
+                                                   $status), $http_args);
+        do_action('sakura_record_activity', $response);
+        $stock_status_array[$product->get_id()] = $status;
     }
 
 #+END_SRC
@@ -1798,14 +1855,14 @@ It should not be included in official environment.
 <?php
 /**
  * @package The development plugin for Sakura Network.
- * @version 1.0.3
+ * @version 1.0.4
  */
 /*
 Plugin Name: Sakura network internal development
 Plugin URI: https://www.sakura.eco/
 Description: This is just a plugin for development use only, to make us local development easy.
 Author: Sakura.eco
-Version: 1.0.3
+Version: 1.0.4
 Author URI: https://www.sakura.eco/
 */
 #+END_SRC
@@ -1973,6 +2030,15 @@ do
 		sudo cp -fr src/* $wp/sakura/
 done
 #+END_SRC
+
+#+RESULTS:
+| setup                    | sakura | in                                                           | /data/sakura/shops/shop1/html/wp-content/plugins |
+| https://sakura.localhost |        |                                                              |                                                  |
+| cp                       | to     | /data/sakura/shops/shop1/html/wp-content/plugins/sakura_dev/ |                                                  |
+| setup                    | sakura | in                                                           | /data/sakura/shops/shop2/html/wp-content/plugins |
+| https://sakura.localhost |        |                                                              |                                                  |
+| cp                       | to     | /data/sakura/shops/shop2/html/wp-content/plugins/sakura_dev/ |                                                  |
+
 =sakura.localhost= will point to localhost and has trusted self signed certs.
 
 Then you can active them in your WordPress admin page.
@@ -1989,7 +2055,7 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -2044,7 +2110,7 @@ If you encounter issues with the shop/category pages after an update, flush the 
 #+BEGIN_SRC txt
 == Changelog ==
 
-= 1.0.3 - 2021-03-26 =
+= 1.0.4 - 2021-03-26 =
 
 **Sakura network**
 

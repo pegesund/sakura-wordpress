@@ -3,7 +3,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -38,12 +38,13 @@ final class Sakura {
 
   public $current_action = null;
   public $current_action_params = null;
+  public $stock_status_array = null;
   /**
    * Sakura version.
    *
    * @var string
    */
-  public $version = '1.0.3';
+  public $version = '1.0.4';
   
   /**
    * Sakura Constructor.
@@ -71,6 +72,10 @@ final class Sakura {
   		 add_action( 'woocommerce_cart_is_empty' , array( $this, 'render_widget_in_cart' ));
   		 add_action( 'woocommerce_thankyou' , array( $this, 'render_widget_in_thank_you' ));
   		 add_action( 'after_woocommerce_pay' , array( $this, 'render_widget_in_receipt_page' ));
+  		 add_action( 'woocommerce_product_set_stock_status' , function ($product_id) {
+           do_action('sakura_record_activity', "try to sync product data");
+           return $this->enqueue_action('update_stock_status', $product_id);
+       });
   
        // a uniform interface to woocommerce events.
        add_action( 'woocommerce_new_order', function ($order_id) {
@@ -154,19 +159,22 @@ final class Sakura {
   * Process action
   */
   public function execute_delayed_queue() {
-        switch ($this->current_action)
-  {
-                  case 'woocommerce_new_order':
-      $this->new_order($this->current_action_params);
-    break;
-  case 'woocommerce_add_to_cart':
-      $this->add_to_cart($this->current_action_params);
-  break;
-  case 'woocommerce_pre_payment_complete':
-      $this->payment_complete = $this->current_action_params;
-      break;
+      switch ($this->current_action)
+      {
+      case 'woocommerce_new_order':
+          $this->new_order($this->current_action_params);
+          break;
+      case 'woocommerce_add_to_cart':
+          $this->add_to_cart($this->current_action_params);
+          break;
+      case 'woocommerce_pre_payment_complete':
+          $this->payment_complete = $this->current_action_params;
+          break;
+      case 'update_stock_status':
+          $this->update_stock_status($this->current_action_params);
+          break;
+      }
   }
-                       }
   
   /**
   * New order
@@ -447,6 +455,45 @@ final class Sakura {
           <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
       <?php
   
+  }
+  
+  /**
+  * render widget in place
+  */
+  public function update_stock_status($product_id) {
+      $product = wc_get_product( $product_id );
+      $status = $product->get_stock_status();
+      if (isset($stock_status_array[$product_id]) &&
+          // If stock status keep unchanged, just return.
+          $stock_status_array[$product_id] == $status) {
+          return;
+      }
+      $sakura_network_options = get_option('sakura_network_option'); // Array of All Options
+  
+      $sakura_secret_key = $sakura_network_options['sakura_secret_key']; // Sakura Secret key
+      if (!isset ($sakura_secret_key)) {
+          do_action('sakura_record_activity', 'Failed to update stock status becuase of empty secret key');
+          return;
+      }
+      $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
+      $http_args = array(
+          'method'      => 'GET',
+          'timeout'     => MINUTE_IN_SECONDS,
+          'redirection' => 0,
+          'httpversion' => '1.0',
+          'blocking'    => true,
+          'user-agent'  => sprintf('WooCommerce Hookshot (WordPress/%s)', $GLOBALS['wp_version']),
+          'headers'     => array(
+              'Content-Type' => 'application/json',
+          ));
+      $response = wp_safe_remote_request(sprintf('%s/api/widget/updateStockStatus?secretKey=%s&pid=%s&sku=%s&stock_status=%s',
+                                                 $sakura_server,
+                                                 $sakura_secret_key,
+                                                 $product_id,
+                                                 $product->get_sku(),
+                                                 $status), $http_args);
+      do_action('sakura_record_activity', $response);
+      $stock_status_array[$product->get_id()] = $status;
   }
   
   /**

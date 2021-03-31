@@ -4,7 +4,7 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -50,7 +50,7 @@ If you encounter issues with the shop/category pages after an update, flush the 
 
 == Changelog ==
 
-= 1.0.3 - 2021-03-26 =
+= 1.0.4 - 2021-03-26 =
 
 **Sakura network**
 
