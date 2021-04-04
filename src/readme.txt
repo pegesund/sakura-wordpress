@@ -50,11 +50,12 @@ If you encounter issues with the shop/category pages after an update, flush the 
 
 == Changelog ==
 
-= 1.0.4 - 2021-04-01 =
+= 1.0.4 - 2021-04-04 =
 
 **Sakura network**
 
 * sync stock status to Sakura Server, to filter out sold products in Sakura network.
+* bug fix: enable sakura network even WooCommerce is not active.
 
 = 1.0.3 - 2021-03-26 =
 

@@ -29,6 +29,12 @@ if ( ! defined( 'SAKURA_PLUGIN_FILE' ) ) {
 	define( 'SAKURA_PLUGIN_FILE', __FILE__ );
 }
 
+if (! ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) )) {
+	define( 'SAKURA_SUPPORT_WOO', false );
+} else {
+    define( 'SAKURA_SUPPORT_WOO', false );
+}
+
 /**
  * Main Sakura Class.
  *
@@ -255,10 +261,12 @@ final class Sakura {
           $query_args['source'] = $source;
       }
   
-      $product = wc_get_product();
-      if ($product) {
-          $query_args['pid'] = $product->get_id();
-          $query_args['sku'] = $product->get_sku();
+      if (SAKURA_SUPPORT_WOO) {
+          $product = wc_get_product();
+          if ($product) {
+              $query_args['pid'] = $product->get_id();
+              $query_args['sku'] = $product->get_sku();
+          }
       }
       if (sizeof($query_args) > 0) {
           $url = $url . '?' . http_build_query($query_args);
@@ -441,10 +449,12 @@ final class Sakura {
           $query_args['history'] = $history;
       }
   
-      $product = wc_get_product();
-      if ($product) {
-          $query_args['pid'] = $product->get_id();
-          $query_args['sku'] = $product->get_sku();
+      if (SAKURA_SUPPORT_WOO) {
+          $product = wc_get_product();
+          if ($product) {
+              $query_args['pid'] = $product->get_id();
+              $query_args['sku'] = $product->get_sku();
+          }
       }
       if (sizeof($query_args) > 0) {
           $url = $url . '?' . http_build_query($query_args);
@@ -685,11 +695,14 @@ final class Sakura {
       if (isset($history)) {
           $query_args['history'] = $history;
       }
-      $product = wc_get_product();
-      if ($product) {
-          $query_args['pid'] = $product->get_id();
-          $query_args['sku'] = $product->get_sku();
+      if (SAKURA_SUPPORT_WOO) {
+          $product = wc_get_product();
+          if ($product) {
+              $query_args['pid'] = $product->get_id();
+              $query_args['sku'] = $product->get_sku();
+          }
       }
+  
       if (sizeof($query_args) > 0) {
           $url = $url . '?' . http_build_query($query_args);
       }
@@ -802,10 +815,12 @@ class Sakura_widget extends WP_Widget {
           $query_args['history'] = $history;
       }
   
-      $product = wc_get_product();
-      if ($product) {
-          $query_args['pid'] = $product->get_id();
-          $query_args['sku'] = $product->get_sku();
+      if (SAKURA_SUPPORT_WOO) {
+          $product = wc_get_product();
+          if ($product) {
+              $query_args['pid'] = $product->get_id();
+              $query_args['sku'] = $product->get_sku();
+          }
       }
       if (sizeof($query_args) > 0) {
           $url = $url . '?' . http_build_query($query_args);
