@@ -129,7 +129,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.4
+ * Version: 1.0.5
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -197,7 +197,7 @@ final class Sakura {
 	 *
 	 * @var string
 	 */
-	public $version = '1.0.4';
+	public $version = '1.0.5';
 
 #+END_SRC
 ** constructor of main class
@@ -1609,14 +1609,15 @@ yarn build # or 'yarn dev' for development build.
                 'editor_script' => 'sakura-network-block-editor',
                 'attributes'      => [
                     'network' => [
-                    'default' => 'Default',
+                    'default' => '0',
                     'type'    => 'string'
                 ],
                     'bgcolor' => [
+                    'default' => '',
                     'type'    => 'string'
                 ],
                     'font' => [
-                    'default' => 'Default',
+                    'default' => '',
                     'type'    => 'string'
                 ]
     ],
@@ -1873,14 +1874,14 @@ It should not be included in official environment.
 <?php
 /**
  * @package The development plugin for Sakura Network.
- * @version 1.0.4
+ * @version 1.0.5
  */
 /*
 Plugin Name: Sakura network internal development
 Plugin URI: https://www.sakura.eco/
 Description: This is just a plugin for development use only, to make us local development easy.
 Author: Sakura.eco
-Version: 1.0.4
+Version: 1.0.5
 Author URI: https://www.sakura.eco/
 */
 #+END_SRC
@@ -2073,7 +2074,7 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -2127,6 +2128,12 @@ If you encounter issues with the shop/category pages after an update, flush the 
 ** changelog
 #+BEGIN_SRC txt
 == Changelog ==
+
+= 1.0.5 - 2021-04-05 =
+
+**Sakura network**
+
+,* bug fix: fix the default value of network and backgroud color.
 
 = 1.0.4 - 2021-04-04 =
 

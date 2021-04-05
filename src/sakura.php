@@ -3,7 +3,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.4
+ * Version: 1.0.5
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -50,7 +50,7 @@ final class Sakura {
    *
    * @var string
    */
-  public $version = '1.0.4';
+  public $version = '1.0.5';
   
   /**
    * Sakura Constructor.
@@ -648,14 +648,15 @@ final class Sakura {
               'editor_script' => 'sakura-network-block-editor',
               'attributes'      => [
                   'network' => [
-                  'default' => 'Default',
+                  'default' => '0',
                   'type'    => 'string'
               ],
                   'bgcolor' => [
+                  'default' => '',
                   'type'    => 'string'
               ],
                   'font' => [
-                  'default' => 'Default',
+                  'default' => '',
                   'type'    => 'string'
               ]
   ],
