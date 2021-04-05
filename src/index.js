@@ -42,7 +42,15 @@ function Edit( props ) {
 						_sakura_networks.networks.map( network =>
 								{ var o = new Object();
 									o.value = network.id;
-									o.label = network.name.en;
+									if (typeof network.name === 'string') {
+											o.label = network.name;
+									} else if (network.name.en) {
+											o.label = network.name.en;
+									} else if (network.name.no) {
+											o.label = network.name.no;
+									} else {
+											o.label = '';
+									}
 									return o;}));
 		var bgcolor_options = [{value: '', label: 'Default'},
 													 {value: '#f7edec', label: 'Red'},

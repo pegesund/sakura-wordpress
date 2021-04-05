@@ -3,7 +3,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -50,7 +50,7 @@ final class Sakura {
    *
    * @var string
    */
-  public $version = '1.0.5';
+  public $version = '1.0.6';
   
   /**
    * Sakura Constructor.
@@ -345,8 +345,8 @@ final class Sakura {
                   <tr>
                   <?php
                       foreach( $articles->{'articles'} as $article_obj ) {
-                          $title = esc_attr($article_obj->{'title_i18n'}->{'en'});
-                          $desc = esc_attr($article_obj->{'description_i18n'}->{'en'});
+                          $title = esc_attr(SC()->in_first_available_lang($article_obj->{'title_i18n'}));
+                          $desc = esc_attr(SC()->in_first_available_lang($article_obj->{'description_i18n'}));
                           $price = esc_attr($article_obj->{'price'});
                           $currency = esc_attr($article_obj->{'currency'});
                           $id = esc_attr($article_obj->{'id'});
@@ -546,6 +546,24 @@ final class Sakura {
                                'message' => 'Failed to get networks');
       }
       return json_decode($response['body']);
+  }
+  /**
+  * extract first available language value from a SQL JSONB object.
+  */
+  public function in_first_available_lang($obj) {
+      if (is_string($obj)) {
+          return $obj;
+      }
+  
+      if( isset( $obj->{'en'})) {
+          return $obj->{'en'};
+      };
+  
+      if(isset( $obj->{'no'})) {
+          return $obj->{'no'};
+      };
+  
+      return '';
   }
   /**
   * enqueue js files.
@@ -876,7 +894,7 @@ class Sakura_widget extends WP_Widget {
               <?php
                   foreach( $networks->{'networks'} as $network_obj ) {
                   $id = $network_obj->{'id'};
-                  $name = $network_obj->{'name'}->{'en'};
+                  $name = SC()->in_first_available_lang($network_obj->{'name'});
                   ?>
                       <option value='<?php echo $id ?>'<?php echo ($network==$id)?'selected':''; ?>>
                           <?php echo $name ?>

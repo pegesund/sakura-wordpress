@@ -42,6 +42,7 @@
   - [[#update-stock-status][update stock status]]
   - [[#setup_block_options-in-js-side][setup_block_options in JS side]]
   - [[#get-owned-sakura-networks-based-on-sakura-widget-key][get owned Sakura networks based on Sakura widget key]]
+  - [[#extract-first-available-language-value-from-a-sql-jsonb-object][extract first available language value from a SQL JSONB object]]
   - [[#enqueue-js-files][enqueue js files]]
   - [[#show-action-links-on-the-plugin-screen][Show action links on the plugin screen]]
   - [[#define-constant-if-not-already-set][Define constant if not already set.]]
@@ -129,7 +130,7 @@
  * Plugin Name: Sakura Network
  * Plugin URI: https://www.sakura.eco
  * Description: An eCommerce toolkit that helps you show articles in a Sakura network.
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author: Sakura.eco
  * Author URI: https://www.sakura.eco/
  * Developer: Sakura.eco
@@ -197,7 +198,7 @@ final class Sakura {
 	 *
 	 * @var string
 	 */
-	public $version = '1.0.5';
+	public $version = '1.0.6';
 
 #+END_SRC
 ** constructor of main class
@@ -566,8 +567,8 @@ to override them and not use attributes such as =height=.
                     <tr>
                     <?php
                         foreach( $articles->{'articles'} as $article_obj ) {
-                            $title = esc_attr($article_obj->{'title_i18n'}->{'en'});
-                            $desc = esc_attr($article_obj->{'description_i18n'}->{'en'});
+                            $title = esc_attr(SC()->in_first_available_lang($article_obj->{'title_i18n'}));
+                            $desc = esc_attr(SC()->in_first_available_lang($article_obj->{'description_i18n'}));
                             $price = esc_attr($article_obj->{'price'});
                             $currency = esc_attr($article_obj->{'currency'});
                             $id = esc_attr($article_obj->{'id'});
@@ -801,6 +802,28 @@ To avoid repeating updating stock status, a local cache will be used.
                                  'message' => 'Failed to get networks');
         }
         return json_decode($response['body']);
+    }
+#+END_SRC
+
+** extract first available language value from a SQL JSONB object
+#+BEGIN_SRC php
+    /**
+    * extract first available language value from a SQL JSONB object.
+    */
+    public function in_first_available_lang($obj) {
+        if (is_string($obj)) {
+            return $obj;
+        }
+
+        if( isset( $obj->{'en'})) {
+            return $obj->{'en'};
+        };
+
+        if(isset( $obj->{'no'})) {
+            return $obj->{'no'};
+        };
+
+        return '';
     }
 #+END_SRC
 
@@ -1086,7 +1109,7 @@ The idea of select box is from [[https://wp-dreams.com/articles/2014/03/wordpres
                 <?php
                     foreach( $networks->{'networks'} as $network_obj ) {
                     $id = $network_obj->{'id'};
-                    $name = $network_obj->{'name'}->{'en'};
+                    $name = SC()->in_first_available_lang($network_obj->{'name'});
                     ?>
                         <option value='<?php echo $id ?>'<?php echo ($network==$id)?'selected':''; ?>>
                             <?php echo $name ?>
@@ -1757,7 +1780,15 @@ function Edit( props ) {
 						_sakura_networks.networks.map( network =>
 								{ var o = new Object();
 									o.value = network.id;
-									o.label = network.name.en;
+									if (typeof network.name === 'string') {
+											o.label = network.name;
+									} else if (network.name.en) {
+											o.label = network.name.en;
+									} else if (network.name.no) {
+											o.label = network.name.no;
+									} else {
+											o.label = '';
+									}
 									return o;}));
 		var bgcolor_options = [{value: '', label: 'Default'},
 													 {value: '#f7edec', label: 'Red'},
@@ -1874,14 +1905,14 @@ It should not be included in official environment.
 <?php
 /**
  * @package The development plugin for Sakura Network.
- * @version 1.0.5
+ * @version 1.0.6
  */
 /*
 Plugin Name: Sakura network internal development
 Plugin URI: https://www.sakura.eco/
 Description: This is just a plugin for development use only, to make us local development easy.
 Author: Sakura.eco
-Version: 1.0.5
+Version: 1.0.6
 Author URI: https://www.sakura.eco/
 */
 #+END_SRC
@@ -2074,7 +2105,7 @@ Tags: e-commerce, sales, sell, woo, shop, woo commerce
 Requires at least: 5.4
 Tested up to: 5.6
 Requires PHP: 7.0
-Stable tag: 1.0.5
+Stable tag: 1.0.6
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -2128,6 +2159,12 @@ If you encounter issues with the shop/category pages after an update, flush the 
 ** changelog
 #+BEGIN_SRC txt
 == Changelog ==
+
+= 1.0.6 - 2021-04-05 =
+
+**Sakura network**
+
+,* bug fix: fix the way to extract i18n value.
 
 = 1.0.5 - 2021-04-05 =
 
