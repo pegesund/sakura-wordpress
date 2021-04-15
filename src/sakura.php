@@ -66,6 +66,7 @@ final class Sakura {
   	* @since 2.3
   	*/
          private function init_hooks() {
+       do_action('sakura_record_activity', 'Initialize hooks for sakura network');
        add_action( 'init', array( $this, 'init' ), 999 );
        add_action( 'init', array( $this, 'init_block' ));
        add_action( 'shutdown', array( $this, 'execute_delayed_queue' ), 0 );
@@ -194,12 +195,14 @@ final class Sakura {
               $sakura_widget_key = $sakura_network_options['sakura_widget_key']; // Sakura Widget key
               do_action('sakura_record_activity', sprintf('notify sakura for new order: #%d', $order_id));
               foreach ($order->get_items() as $item_id => $item) {
-                  $product    = $item->get_product();
+                  $product = $item->get_product();
                   $payload = array(
                       'event' => 'purchase',
                       'pid' => $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id(),
                       'sakura-widget-key' => $sakura_widget_key,
                       'sku' => $product->get_sku(),
+                      'total' => $item->get_total(),
+                      'currency' => get_woocommerce_currency(),
                       'amount' => $item->get_quantity(),
                       'id' => $order_id,
                   );
@@ -443,6 +446,8 @@ final class Sakura {
   
       $sakura_server = apply_filters('sakura_update_server_address', 'https://www.sakura.eco');
       $url = $sakura_server . '/widget/' . $sakura_widget_key;
+  
+      $query_args = array();
   
       $history = SC()->sakura_history_in_cookie();
       if (isset($history)) {
