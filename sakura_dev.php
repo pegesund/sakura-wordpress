@@ -1,14 +1,14 @@
 <?php
 /**
  * @package The development plugin for Sakura Network.
- * @version 1.0.6
+ * @version 1.0.7
  */
 /*
 Plugin Name: Sakura network internal development
 Plugin URI: https://www.sakura.eco/
 Description: This is just a plugin for development use only, to make us local development easy.
 Author: Sakura.eco
-Version: 1.0.6
+Version: 1.0.7
 Author URI: https://www.sakura.eco/
 */
 
