@@ -326,6 +326,7 @@ final class Sakura {
       ?>
           <br>
           <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700&display=swap&subset=latin-ext" rel="stylesheet">
+          <b style='display: block; font-family: Montserrat, "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif; font-size: 18px; font-weight: bold; line-height: 130%; margin: 0 0 5px; text-align: left;'>OTHER CUSTOMERS ALSO LIKE</b>
           <span style='font-family: Montserrat;'>
           Discovery Name is a digital cooperation of online offering made for you to give you an even more relevant and exciting discovery online. </span>
           <br>
@@ -465,6 +466,7 @@ final class Sakura {
       }
   
       ?>
+          <h3> OTHER CUSTOMERS ALSO LIKE </h3>
           <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
       <?php
   
