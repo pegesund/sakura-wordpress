@@ -311,6 +311,8 @@ final class Sakura {
       }
       $fromSite = $articles->{'fromSite'};
       $fromArticle = $articles->{'fromArticle'};
+      $companyName = $articles->{'name'};
+      $networkName = $articles->{'network'};
       $sakura_from = '';
       if (!empty($fromSite)) {
           $sakura_from = $fromSite . ":";
@@ -326,11 +328,13 @@ final class Sakura {
       ?>
           <br>
           <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700&display=swap&subset=latin-ext" rel="stylesheet">
-          <span style='font-family: Montserrat;'>
-          Discovery Name is a digital cooperation of online offering made for you to give you an even more relevant and exciting discovery online. </span>
+          <span style='font-family: Montserrat;'> <b> <?php echo $companyName; ?> IS A PROUD MEMBER OF <?php echo $networkName; ?>: </b> </span>
           <br>
           <span style='font-family: Montserrat;'>
-          Below you will find even more products that global customers also views, visits and purchases. On behalf of Discovery Name, we thank You for your purchase and invite you to discover even more products by clicking on one of the assets below. </span>
+          <?php echo $networkName; ?> is a digital cooperation of online offering made for you to give you an even more relevant and exciting discovery online. </span>
+          <br>
+          <span style='font-family: Montserrat;'>
+          Below you will find even more products that global customers also views, visits and purchases. On behalf of <?php echo $networkName; ?>, we thank You for your purchase and invite you to discover even more products by clicking on one of the assets below. </span>
   
           <br>
           <div style="background:#f6f6f4;background-color:#f6f6f4; padding: 5px; width:100%">
