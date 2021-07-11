@@ -314,6 +314,7 @@ final class Sakura {
       }
       $fromSite = $articles->{'fromSite'};
       $fromArticle = $articles->{'fromArticle'};
+      $networkName = $articles->{'network'};
       $sakura_from = '';
       if (!empty($fromSite)) {
           $sakura_from = $fromSite . ":";
@@ -329,19 +330,12 @@ final class Sakura {
       ?>
           <br>
           <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700&display=swap&subset=latin-ext" rel="stylesheet">
-          <b style='display: block; font-family: Montserrat, "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif; font-size: 18px; font-weight: bold; line-height: 130%; margin: 0 0 5px; text-align: left;'>OTHER CUSTOMERS ALSO LIKE</b>
-          <span style='font-family: Montserrat;'>
-          Discovery Name is a digital cooperation of online offering made for you to give you an even more relevant and exciting discovery online. </span>
-          <br>
-          <span style='font-family: Montserrat;'>
-          Below you will find even more products that global customers also views, visits and purchases. On behalf of Discovery Name, we thank You for your purchase and invite you to discover even more products by clicking on one of the assets below. </span>
-  
           <br>
           <div style="background:#f6f6f4;background-color:#f6f6f4; padding: 5px; width:100%">
               <table style="border-collapse: collapse; width: 100%; height: 36px; background-color: #f6f6f4; " border="0">
               <tbody>
                   <tr style="width:100%; height: 18px;">
-              <td style="padding-top: 5px;padding-bottom: 5px;width: 100%; height: 18px;font-family: Montserrat;">&nbsp; &nbsp; DISCOVERY IN THE BLUE</td>
+              <td style="padding-top: 5px;padding-bottom: 5px;width: 100%; height: 18px;font-family: Montserrat;">&nbsp; &nbsp; <?php esc_attr(SC()->in_first_available_lang($networkName));?></td>
                   </tr>
                   <tr style="width:100%; height: 18px;">
               <td style="width: 100%; height: 18px;">
