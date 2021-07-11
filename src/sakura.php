@@ -463,7 +463,6 @@ final class Sakura {
       }
   
       ?>
-          <h3> OTHER CUSTOMERS ALSO LIKE </h3>
           <iframe class="sakura" style="width: 100%; height: 433px; border: 0" src="<?php echo $url; ?>" title="Sakura Transparency Widget"></iframe>
       <?php
   
